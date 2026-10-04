@@ -1,0 +1,1 @@
+Add-Type -AssemblyName System.Drawing; $path = Resolve-Path "Screenshot_2026-10-01_224920-removebg-preview.png"; $img = new-object System.Drawing.Bitmap($path.Path); $img.MakeTransparent([System.Drawing.Color]::White); $img.Save("Screenshot_2026-10-01_224920-removebg-preview.png", [System.Drawing.Imaging.ImageFormat]::Png)
