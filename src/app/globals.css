@@ -1,0 +1,209 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-color: #050508;
+  --surface-color: #0d0d14;
+  --surface-color-light: #161622;
+  --border-color: rgba(255, 255, 255, 0.1);
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1aa;
+  
+  --accent-primary: #FBC815; /* Rockstar Yellow */
+  --accent-primary-hover: #e0b010;
+  --accent-secondary: #FF007F; /* Neon Pink */
+  --accent-tertiary: #00F0FF; /* Neon Cyan */
+  
+  --status-success: #10b981;
+  --status-warning: #FBC815;
+  --status-error: #FF007F;
+
+  --font-family-body: 'Rajdhani', sans-serif;
+  --font-family-heading: 'Orbitron', sans-serif;
+  --font-family-tech: 'Share Tech Mono', monospace;
+}
+@layer base {
+  @font-face {
+    font-family: 'Pricedown';
+    src: url('/fonts/pricedown.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-bg-color text-text-primary;
+    font-family: var(--font-family-body);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-color);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--surface-color-light);
+  border-radius: 0px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-secondary);
+}
+
+.glass-panel {
+  background: rgba(13, 13, 20, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+}
+
+/* Typography Overrides */
+h1, h2, h3, h4, h5, h6 {
+  margin-bottom: 0.5em;
+  font-family: var(--font-family-heading);
+  letter-spacing: 2px;
+  line-height: 1.1;
+  text-transform: uppercase;
+  text-shadow: 2px 2px 0px rgba(0,0,0,0.8), 0 0 10px rgba(251, 200, 21, 0.2);
+}
+
+h1 { font-size: 3rem; }
+h2 { font-size: 2.2rem; }
+h3 { font-size: 1.6rem; }
+
+.text-gradient {
+  color: var(--text-primary);
+}
+
+p {
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes neonFlicker {
+  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+    opacity: 1;
+    text-shadow: 2px 2px 0px rgba(0,0,0,1), 0 0 10px var(--accent-secondary), 0 0 20px var(--accent-secondary);
+  }
+  20%, 24%, 55% {
+    opacity: 0.5;
+    text-shadow: none;
+  }
+}
+
+@keyframes pulseGlow {
+  0% { box-shadow: 0 0 5px var(--accent-primary); }
+  50% { box-shadow: 0 0 20px var(--accent-primary), 0 0 30px var(--accent-primary); }
+  100% { box-shadow: 0 0 5px var(--accent-primary); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(40px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease forwards;
+}
+
+.animate-flicker {
+  animation: neonFlicker 3s infinite alternate;
+}
+
+.animate-glow {
+  animation: pulseGlow 3s infinite;
+}
+
+.animate-delay-1 { animation-delay: 0.1s; }
+.animate-delay-2 { animation-delay: 0.2s; }
+.animate-delay-3 { animation-delay: 0.3s; }
+
+/* GTA Vice City & Retro Animations */
+@keyframes missionPassed {
+  0% { transform: scale(3) rotate(-10deg); opacity: 0; filter: blur(10px) drop-shadow(0 0 20px var(--accent-secondary)); }
+  50% { transform: scale(1.1) rotate(2deg); opacity: 0.8; filter: blur(2px) drop-shadow(0 0 10px var(--accent-secondary)); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; filter: blur(0) drop-shadow(0 0 0px transparent); }
+}
+
+@keyframes miamiSunset {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes driveBy {
+  0% { transform: translateX(-150%) skewX(-30deg); opacity: 0; }
+  60% { transform: translateX(5%) skewX(10deg); opacity: 1; }
+  80% { transform: translateX(-2%) skewX(-5deg); }
+  100% { transform: translateX(0) skewX(0); opacity: 1; }
+}
+
+@keyframes neonSignGlitch {
+  0%, 100% { text-shadow: 2px 2px 0px rgba(0,0,0,0.8), 0 0 10px var(--accent-tertiary); opacity: 1; transform: translate(0); }
+  20% { text-shadow: -2px -2px 0px var(--accent-secondary), 2px 2px 0px var(--accent-primary); transform: translate(-2px, 2px); }
+  21% { opacity: 0.4; }
+  22% { opacity: 1; transform: translate(2px, -2px); }
+  40% { text-shadow: 2px 2px 0px rgba(0,0,0,0.8), 0 0 10px var(--accent-tertiary); transform: translate(0); }
+  80% { text-shadow: 2px 2px 0px rgba(0,0,0,0.8), 0 0 10px var(--accent-tertiary); opacity: 1; }
+  81% { opacity: 0.8; transform: translate(1px, 1px) skewX(10deg); }
+  82% { opacity: 1; transform: translate(0) skewX(0); }
+}
+
+.animate-mission-passed {
+  animation: missionPassed 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.animate-drive-by {
+  animation: driveBy 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+.animate-miami-sunset {
+  background: linear-gradient(45deg, var(--bg-color), rgba(255, 0, 127, 0.2), rgba(0, 240, 255, 0.2), var(--bg-color));
+  background-size: 300% 300%;
+  animation: miamiSunset 6s ease infinite;
+}
+
+.animate-neon-glitch {
+  animation: neonSignGlitch 4s infinite;
+}
+
+.vice-city-scanlines::after {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%);
+  z-index: 50;
+  background-size: 100% 3px;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+/* Custom Badge Classes mapped from old CSS */
+.badge-success { background: rgba(16, 185, 129, 0.1); color: var(--status-success); border: 1px solid var(--status-success); }
+.badge-warning { background: rgba(251, 200, 21, 0.1); color: var(--accent-primary); border: 1px solid var(--accent-primary); }
+.badge-error { background: rgba(255, 0, 127, 0.1); color: var(--status-error); border: 1px solid var(--status-error); }
+.badge-neutral { background: var(--surface-color-light); color: var(--text-primary); border: 1px solid var(--border-color); }
+
+.nav-item-active svg {
+  color: var(--accent-secondary) !important;
+  filter: drop-shadow(0 0 5px var(--accent-secondary));
+}
