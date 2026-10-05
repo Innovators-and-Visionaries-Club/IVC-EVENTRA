@@ -1,129 +1,129 @@
 -- ==============================================================================
--- IVC PULSE: Initial Database Schema & RLS Policies Migration
+-- IVC PULSE: Complete Self-Contained Database Architecture Migration
+-- Target: Supabase PostgreSQL (auth schema integration + RLS + Triggers)
 -- File: supabase/migrations/001_initial_schema.sql
 -- ==============================================================================
 
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- ------------------------------------------------------------------------------
+-- 1. ENUM TYPES
+-- ------------------------------------------------------------------------------
+DO $$ BEGIN
+    CREATE TYPE user_role AS ENUM ('admin', 'judge', 'staff', 'organizer', 'participant');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE team_member_role AS ENUM ('leader', 'member');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE round_status AS ENUM ('draft', 'open', 'closed', 'locked', 'reopened');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE evaluation_status AS ENUM ('draft', 'submitted', 'locked', 'reopened');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE action_type AS ENUM ('registration', 'goodies', 'lunch', 'snacks');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- ------------------------------------------------------------------------------
--- 1. PROFILES TABLE (Linked with Supabase auth.users)
+-- 2. TABLE SCHEMAS & CONSTRAINTS
 -- ------------------------------------------------------------------------------
+
+-- 1. PROFILES
 CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-    email TEXT UNIQUE NOT NULL,
+    email TEXT,
     full_name TEXT,
-    avatar_url TEXT,
-    role TEXT NOT NULL DEFAULT 'participant' CHECK (role IN ('admin', 'judge', 'staff', 'organizer', 'participant')),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+    role user_role NOT NULL DEFAULT 'participant',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- ------------------------------------------------------------------------------
--- 2. EVENTS TABLE
--- ------------------------------------------------------------------------------
+-- 2. EVENTS
 CREATE TABLE IF NOT EXISTS public.events (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT NOT NULL,
     description TEXT,
-    start_date TIMESTAMPTZ,
-    end_date TIMESTAMPTZ,
-    is_active BOOLEAN NOT NULL DEFAULT true,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- ------------------------------------------------------------------------------
--- 3. TEAMS TABLE
--- ------------------------------------------------------------------------------
+-- 3. TEAMS
 CREATE TABLE IF NOT EXISTS public.teams (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     event_id UUID REFERENCES public.events(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
-    track TEXT DEFAULT 'Innovation',
-    leader_name TEXT,
-    status TEXT NOT NULL DEFAULT 'registered' CHECK (status IN ('registered', 'checked_in', 'disqualified', 'finalist')),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+    code TEXT UNIQUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- ------------------------------------------------------------------------------
--- 4. TEAM MEMBERS TABLE
--- ------------------------------------------------------------------------------
+-- 4. TEAM MEMBERS
 CREATE TABLE IF NOT EXISTS public.team_members (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     team_id UUID NOT NULL REFERENCES public.teams(id) ON DELETE CASCADE,
-    user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
-    name TEXT NOT NULL,
-    email TEXT,
-    role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('leader', 'member')),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    role team_member_role NOT NULL DEFAULT 'member',
+    joined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT uq_team_member UNIQUE (team_id, user_id)
 );
 
--- ------------------------------------------------------------------------------
--- 5. EVALUATION ROUNDS TABLE
--- ------------------------------------------------------------------------------
+-- 5. EVALUATION ROUNDS
 CREATE TABLE IF NOT EXISTS public.evaluation_rounds (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     event_id UUID REFERENCES public.events(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
     sequence_order INT NOT NULL DEFAULT 1,
-    status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'open', 'closed', 'locked', 'reopened')),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
-    CONSTRAINT uq_round_sequence UNIQUE (event_id, sequence_order)
+    status round_status NOT NULL DEFAULT 'draft',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- ------------------------------------------------------------------------------
--- 6. EVALUATION CRITERIA TABLE
--- ------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.evaluation_criteria (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+-- 6. CRITERIA
+CREATE TABLE IF NOT EXISTS public.criteria (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     round_id UUID NOT NULL REFERENCES public.evaluation_rounds(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
     description TEXT,
-    max_marks NUMERIC(5, 2) NOT NULL DEFAULT 10.00 CHECK (max_marks > 0),
+    max_marks NUMERIC NOT NULL CHECK (max_marks > 0),
     is_required BOOLEAN NOT NULL DEFAULT true,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- ------------------------------------------------------------------------------
--- 7. JUDGE ASSIGNMENTS TABLE
--- ------------------------------------------------------------------------------
+-- 7. JUDGE ASSIGNMENTS
 CREATE TABLE IF NOT EXISTS public.judge_assignments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     judge_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     team_id UUID NOT NULL REFERENCES public.teams(id) ON DELETE CASCADE,
-    round_id UUID REFERENCES public.evaluation_rounds(id) ON DELETE CASCADE,
-    assigned_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
-    CONSTRAINT uq_judge_team_round UNIQUE (judge_id, team_id, round_id)
+    assigned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT uq_judge_team UNIQUE (judge_id, team_id)
 );
 
--- ------------------------------------------------------------------------------
--- 8. EVALUATIONS TABLE
--- ------------------------------------------------------------------------------
+-- 8. EVALUATIONS
 CREATE TABLE IF NOT EXISTS public.evaluations (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     round_id UUID NOT NULL REFERENCES public.evaluation_rounds(id) ON DELETE CASCADE,
     team_id UUID NOT NULL REFERENCES public.teams(id) ON DELETE CASCADE,
     judge_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-    total_score NUMERIC(6, 2) DEFAULT 0.00,
-    scores_breakdown JSONB NOT NULL DEFAULT '[]'::jsonb,
+    scores JSONB NOT NULL DEFAULT '[]'::jsonb,
+    total_score NUMERIC DEFAULT 0,
+    status evaluation_status NOT NULL DEFAULT 'draft',
     feedback TEXT,
-    status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'submitted', 'locked', 'reopened')),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
-    CONSTRAINT uq_eval_round_team_judge UNIQUE (round_id, team_id, judge_id)
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT uq_round_team_judge UNIQUE (round_id, team_id, judge_id)
 );
 
--- ------------------------------------------------------------------------------
--- 9. TEAM SUBMISSIONS TABLE
--- ------------------------------------------------------------------------------
+-- 9. TEAM SUBMISSIONS
 CREATE TABLE IF NOT EXISTS public.team_submissions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     team_id UUID NOT NULL REFERENCES public.teams(id) ON DELETE CASCADE,
     round_id UUID NOT NULL REFERENCES public.evaluation_rounds(id) ON DELETE CASCADE,
     ppt_url TEXT NOT NULL,
@@ -131,67 +131,57 @@ CREATE TABLE IF NOT EXISTS public.team_submissions (
     pitch_deck_url TEXT,
     prototype_url TEXT,
     additional_material_url TEXT,
-    submitted_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
-    CONSTRAINT uq_team_submission_round UNIQUE (team_id, round_id)
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT uq_team_round_submission UNIQUE (team_id, round_id)
 );
 
--- ------------------------------------------------------------------------------
--- 10. EVENT RESULTS TABLE
--- ------------------------------------------------------------------------------
+-- 10. EVENT RESULTS
 CREATE TABLE IF NOT EXISTS public.event_results (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     event_id UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
     team_id UUID NOT NULL REFERENCES public.teams(id) ON DELETE CASCADE,
-    total_score NUMERIC(8, 2) NOT NULL DEFAULT 0.00,
-    average_score NUMERIC(6, 2) NOT NULL DEFAULT 0.00,
-    evaluations_count INT NOT NULL DEFAULT 0,
+    total_score NUMERIC DEFAULT 0,
     rank INT,
     is_published BOOLEAN NOT NULL DEFAULT false,
     is_locked BOOLEAN NOT NULL DEFAULT false,
-    published_at TIMESTAMPTZ,
-    locked_at TIMESTAMPTZ,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
-    CONSTRAINT uq_event_team_result UNIQUE (event_id, team_id)
+    calculated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT uq_event_team UNIQUE (event_id, team_id)
 );
 
--- ------------------------------------------------------------------------------
--- 11. EVENT ACTIVITY LOGS TABLE (With Unique Constraint for Duplicate Prevention)
--- ------------------------------------------------------------------------------
+-- 11. EVENT ACTIVITY LOGS (Duplicate claim prevention via unique index)
 CREATE TABLE IF NOT EXISTS public.event_activity_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     team_id UUID NOT NULL REFERENCES public.teams(id) ON DELETE CASCADE,
-    participant_id UUID NOT NULL,
-    action_type TEXT NOT NULL CHECK (action_type IN ('registration', 'goodies', 'lunch', 'snacks')),
+    participant_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    action_type action_type NOT NULL,
     scanned_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT uq_participant_action UNIQUE (participant_id, action_type)
 );
 
--- ------------------------------------------------------------------------------
--- 12. AUDIT LOGS TABLE
--- ------------------------------------------------------------------------------
+-- 12. AUDIT LOGS
 CREATE TABLE IF NOT EXISTS public.audit_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     admin_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
     action TEXT NOT NULL,
-    entity_type TEXT NOT NULL,
-    entity_id TEXT NOT NULL,
-    details JSONB DEFAULT '{}'::jsonb,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+    target_entity TEXT,
+    target_id UUID,
+    reason TEXT,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- ==============================================================================
--- ROW LEVEL SECURITY (RLS) POLICIES
--- ==============================================================================
+-- ------------------------------------------------------------------------------
+-- 3. ROW LEVEL SECURITY (RLS) POLICIES
+-- ------------------------------------------------------------------------------
 
--- Enable RLS across all tables
+-- Enable RLS across all 12 tables
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.teams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.team_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.evaluation_rounds ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.evaluation_criteria ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.criteria ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.judge_assignments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.evaluations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.team_submissions ENABLE ROW LEVEL SECURITY;
@@ -199,7 +189,7 @@ ALTER TABLE public.event_results ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.event_activity_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 
--- Helper function to check if current user is an admin
+-- Helper function: check if authenticated user has admin role
 CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS BOOLEAN AS $$
 BEGIN
@@ -211,56 +201,62 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 1. Profiles Policies
-CREATE POLICY "Public profiles are viewable by authenticated users"
+CREATE POLICY "Profiles readable by authenticated users"
 ON public.profiles FOR SELECT TO authenticated USING (true);
 
-CREATE POLICY "Users can update their own profile"
+CREATE POLICY "Users can update own profile"
 ON public.profiles FOR UPDATE TO authenticated USING (auth.uid() = id);
 
 -- 2. Events Policies
-CREATE POLICY "Events are viewable by anyone"
+CREATE POLICY "Events readable by all"
 ON public.events FOR SELECT USING (true);
 
 CREATE POLICY "Admins can manage events"
 ON public.events FOR ALL TO authenticated USING (public.is_admin());
 
 -- 3. Teams Policies
-CREATE POLICY "Teams are viewable by authenticated users"
+CREATE POLICY "Teams readable by authenticated users"
 ON public.teams FOR SELECT TO authenticated USING (true);
 
 CREATE POLICY "Admins can manage teams"
 ON public.teams FOR ALL TO authenticated USING (public.is_admin());
 
 -- 4. Team Members Policies
-CREATE POLICY "Team members viewable by authenticated users"
+CREATE POLICY "Team members readable by authenticated users"
 ON public.team_members FOR SELECT TO authenticated USING (true);
 
+CREATE POLICY "Admins can manage team members"
+ON public.team_members FOR ALL TO authenticated USING (public.is_admin());
+
 -- 5. Evaluation Rounds Policies
-CREATE POLICY "Rounds are viewable by authenticated users"
+CREATE POLICY "Rounds readable by authenticated users"
 ON public.evaluation_rounds FOR SELECT TO authenticated USING (true);
 
 CREATE POLICY "Admins can manage rounds"
 ON public.evaluation_rounds FOR ALL TO authenticated USING (public.is_admin());
 
--- 6. Evaluation Criteria Policies
-CREATE POLICY "Criteria are viewable by authenticated users"
-ON public.evaluation_criteria FOR SELECT TO authenticated USING (true);
+-- 6. Criteria Policies
+CREATE POLICY "Criteria readable by authenticated users"
+ON public.criteria FOR SELECT TO authenticated USING (true);
 
 CREATE POLICY "Admins can manage criteria"
-ON public.evaluation_criteria FOR ALL TO authenticated USING (public.is_admin());
+ON public.criteria FOR ALL TO authenticated USING (public.is_admin());
 
 -- 7. Judge Assignments Policies
-CREATE POLICY "Judges can view their own assignments"
+CREATE POLICY "Judges and admins can view assignments"
 ON public.judge_assignments FOR SELECT TO authenticated
 USING (judge_id = auth.uid() OR public.is_admin());
 
+CREATE POLICY "Admins can manage judge assignments"
+ON public.judge_assignments FOR ALL TO authenticated USING (public.is_admin());
+
 -- 8. Evaluations Policies
 CREATE POLICY "Judges can view and manage their evaluations"
-ON public.evaluations FOR SELECT TO authenticated
+ON public.evaluations FOR ALL TO authenticated
 USING (judge_id = auth.uid() OR public.is_admin());
 
 -- 9. Team Submissions Policies
-CREATE POLICY "Submissions viewable by team members, judges, and admins"
+CREATE POLICY "Team members and judges can view submissions"
 ON public.team_submissions FOR SELECT TO authenticated
 USING (
   public.is_admin() OR
@@ -268,16 +264,31 @@ USING (
   EXISTS (SELECT 1 FROM public.judge_assignments WHERE team_id = team_submissions.team_id AND judge_id = auth.uid())
 );
 
+CREATE POLICY "Team leaders can manage submissions"
+ON public.team_submissions FOR ALL TO authenticated
+USING (
+  public.is_admin() OR
+  EXISTS (
+    SELECT 1 FROM public.team_members
+    WHERE team_id = team_submissions.team_id
+      AND user_id = auth.uid()
+      AND role = 'leader'
+  )
+);
+
 -- 10. Event Results Policies
-CREATE POLICY "Published results viewable by team members or admins"
+CREATE POLICY "Results viewable when published or by admin"
 ON public.event_results FOR SELECT TO authenticated
 USING (
   public.is_admin() OR
-  (is_published = true AND EXISTS (SELECT 1 FROM public.team_members WHERE team_id = event_results.team_id AND user_id = auth.uid()))
+  (is_published = true AND EXISTS (
+    SELECT 1 FROM public.team_members
+    WHERE team_id = event_results.team_id AND user_id = auth.uid()
+  ))
 );
 
 -- 11. Event Activity Logs Policies
-CREATE POLICY "Operations staff and admins can view and insert activity logs"
+CREATE POLICY "Staff and admins can view and record activity logs"
 ON public.event_activity_logs FOR ALL TO authenticated
 USING (
   EXISTS (
@@ -290,3 +301,33 @@ USING (
 CREATE POLICY "Audit logs only viewable by admins"
 ON public.audit_logs FOR SELECT TO authenticated
 USING (public.is_admin());
+
+-- ------------------------------------------------------------------------------
+-- 4. TRIGGERS (Auto-Profile Creation on auth.users Signup)
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, full_name, role, created_at)
+  VALUES (
+    new.id,
+    new.email,
+    COALESCE(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name', ''),
+    COALESCE((new.raw_user_meta_data->>'role')::user_role, 'participant'::user_role),
+    now()
+  )
+  ON CONFLICT (id) DO UPDATE
+  SET
+    email = EXCLUDED.email,
+    full_name = COALESCE(EXCLUDED.full_name, public.profiles.full_name);
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Drop trigger if exists to prevent duplicates
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+
+-- Create trigger attached to auth.users
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();

@@ -1,4 +1,7 @@
-import { requireAdmin } from "@/lib/auth/admin";
+import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
+import { createClient } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import AdminSidebar from "@/components/admin/Sidebar";
 
 export const dynamic = "force-dynamic";
@@ -8,10 +11,23 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  try {
-    await requireAdmin();
-  } catch (error: any) {
-    // If running in development without credentials or failing role check, render structured access fallback
+  // 1. Verify basic Supabase Auth & Admin Profile Role
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile || (profile as { role?: string }).role !== "admin") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#050508] p-6 text-center">
         <div className="glass-panel max-w-md w-full p-8 border border-status-error/40 shadow-2xl relative">
@@ -20,7 +36,7 @@ export default async function AdminLayout({
           </div>
           <h1 className="font-heading text-2xl text-text-primary uppercase mb-2">Access Denied</h1>
           <p className="font-tech text-text-secondary text-sm mb-6">
-            {error?.message || "Admin authorization required to access mission control."}
+            Admin privileges required to access mission control.
           </p>
           <a
             href="/"
@@ -31,6 +47,14 @@ export default async function AdminLayout({
         </div>
       </div>
     );
+  }
+
+  // 2. Checkpoint Verification: Check admin_session_verified cookie
+  const cookieStore = await cookies();
+  const isVerified = cookieStore.get("admin_session_verified")?.value === "true";
+
+  if (!isVerified) {
+    redirect("/admin/login");
   }
 
   return (
