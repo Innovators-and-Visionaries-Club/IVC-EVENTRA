@@ -1,4 +1,6 @@
-import { requireJudge } from "@/lib/auth/judge";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import JudgeHeader from "@/components/judge/Header";
 
 export const dynamic = "force-dynamic";
@@ -8,28 +10,23 @@ export default async function JudgeLayout({
 }: {
   children: React.ReactNode;
 }) {
-  try {
-    await requireJudge();
-  } catch (error: any) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#050508] p-6 text-center">
-        <div className="glass-panel max-w-md w-full p-8 border border-status-error/40 shadow-2xl">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-status-error/10 border border-status-error flex items-center justify-center">
-            <span className="font-heading text-2xl text-status-error">403</span>
-          </div>
-          <h1 className="font-heading text-2xl text-text-primary uppercase mb-2">Judge Access Required</h1>
-          <p className="font-tech text-text-secondary text-sm mb-6">
-            {error?.message || "You must be authenticated as a verified judge to access this portal."}
-          </p>
-          <a
-            href="/"
-            className="inline-block px-6 py-3 bg-surface-color-light border border-border-color hover:border-accent-secondary font-tech font-bold uppercase tracking-wider text-xs text-text-primary transition-all"
-          >
-            Return to Home
-          </a>
-        </div>
-      </div>
-    );
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile || (profile as { role?: string }).role !== "judge") {
+    redirect("/login");
   }
 
   return (

@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { requireOperationsRole } from "@/lib/auth/operations";
 import OpsHeader from "@/components/ops/Header";
 
@@ -10,26 +11,8 @@ export default async function OpsLayout({
 }) {
   try {
     await requireOperationsRole();
-  } catch (error: any) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#050508] p-6 text-center">
-        <div className="glass-panel max-w-md w-full p-8 border border-status-error/40 shadow-2xl">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-status-error/10 border border-status-error flex items-center justify-center">
-            <span className="font-heading text-2xl text-status-error">403</span>
-          </div>
-          <h1 className="font-heading text-2xl text-text-primary uppercase mb-2">Staff Access Only</h1>
-          <p className="font-tech text-text-secondary text-sm mb-6">
-            {error?.message || "Operational staff privileges (Admin, Staff, or Organizer) are required."}
-          </p>
-          <a
-            href="/"
-            className="inline-block px-6 py-3 bg-surface-color-light border border-border-color hover:border-accent-secondary font-tech font-bold uppercase tracking-wider text-xs text-text-primary transition-all"
-          >
-            Return to Home
-          </a>
-        </div>
-      </div>
-    );
+  } catch {
+    redirect("/login");
   }
 
   return (
