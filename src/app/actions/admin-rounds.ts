@@ -15,7 +15,7 @@ export type UpdateCriterionInput = z.infer<typeof UpdateCriterionSchema>;
 export type RoundStatus = z.infer<typeof RoundSchema>["status"];
 
 export async function createRound(data: RoundInput) {
-  await requireAdmin();
+  const { user } = await requireAdmin();
   const validated = RoundSchema.parse(data);
 
   const { data: round, error } = await supabaseAdmin
@@ -28,12 +28,35 @@ export async function createRound(data: RoundInput) {
     throw new Error(`Failed to create round: ${error.message}`);
   }
 
+  // Audit log write
+  await supabaseAdmin.from("audit_logs").insert([
+    {
+      action: "CREATE_EVALUATION_ROUND",
+      entity_type: "evaluation_round",
+      entity_id: round.id,
+      admin_id: user.id,
+      details: {
+        title: round.title,
+        sequence_order: round.sequence_order,
+        status: round.status,
+      },
+      created_at: new Date().toISOString(),
+    },
+  ]);
+
   return round;
 }
 
 export async function updateRoundStatus(roundId: string, status: RoundStatus) {
-  await requireAdmin();
+  const { user } = await requireAdmin();
   const validStatus = RoundSchema.shape.status.parse(status);
+
+  // Fetch previous status for diffing
+  const { data: previousRound } = await supabaseAdmin
+    .from("evaluation_rounds")
+    .select("status")
+    .eq("id", roundId)
+    .single();
 
   const { data: round, error } = await supabaseAdmin
     .from("evaluation_rounds")
@@ -46,11 +69,26 @@ export async function updateRoundStatus(roundId: string, status: RoundStatus) {
     throw new Error(`Failed to update round status: ${error.message}`);
   }
 
+  // Audit log write
+  await supabaseAdmin.from("audit_logs").insert([
+    {
+      action: "UPDATE_ROUND_STATUS",
+      entity_type: "evaluation_round",
+      entity_id: roundId,
+      admin_id: user.id,
+      details: {
+        previous_status: previousRound?.status || null,
+        new_status: validStatus,
+      },
+      created_at: new Date().toISOString(),
+    },
+  ]);
+
   return round;
 }
 
 export async function createCriterion(data: CriterionInput) {
-  await requireAdmin();
+  const { user } = await requireAdmin();
   const validated = CriterionSchema.parse(data);
 
   const { data: criterion, error } = await supabaseAdmin
@@ -63,11 +101,27 @@ export async function createCriterion(data: CriterionInput) {
     throw new Error(`Failed to create criterion: ${error.message}`);
   }
 
+  // Audit log write
+  await supabaseAdmin.from("audit_logs").insert([
+    {
+      action: "CREATE_CRITERION",
+      entity_type: "evaluation_criterion",
+      entity_id: criterion.id,
+      admin_id: user.id,
+      details: {
+        round_id: criterion.round_id,
+        title: criterion.title,
+        max_marks: criterion.max_marks,
+      },
+      created_at: new Date().toISOString(),
+    },
+  ]);
+
   return criterion;
 }
 
 export async function updateCriterion(criterionId: string, data: UpdateCriterionInput) {
-  await requireAdmin();
+  const { user } = await requireAdmin();
   const validated = UpdateCriterionSchema.parse(data);
 
   const { data: criterion, error } = await supabaseAdmin
@@ -81,11 +135,23 @@ export async function updateCriterion(criterionId: string, data: UpdateCriterion
     throw new Error(`Failed to update criterion: ${error.message}`);
   }
 
+  // Audit log write
+  await supabaseAdmin.from("audit_logs").insert([
+    {
+      action: "UPDATE_CRITERION",
+      entity_type: "evaluation_criterion",
+      entity_id: criterionId,
+      admin_id: user.id,
+      details: validated,
+      created_at: new Date().toISOString(),
+    },
+  ]);
+
   return criterion;
 }
 
 export async function deleteCriterion(criterionId: string) {
-  await requireAdmin();
+  const { user } = await requireAdmin();
 
   const { error } = await supabaseAdmin
     .from("evaluation_criteria")
@@ -95,6 +161,18 @@ export async function deleteCriterion(criterionId: string) {
   if (error) {
     throw new Error(`Failed to delete criterion: ${error.message}`);
   }
+
+  // Audit log write
+  await supabaseAdmin.from("audit_logs").insert([
+    {
+      action: "DELETE_CRITERION",
+      entity_type: "evaluation_criterion",
+      entity_id: criterionId,
+      admin_id: user.id,
+      details: { criterion_id: criterionId },
+      created_at: new Date().toISOString(),
+    },
+  ]);
 
   return { success: true };
 }

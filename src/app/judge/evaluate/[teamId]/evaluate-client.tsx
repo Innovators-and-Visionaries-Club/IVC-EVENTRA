@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { saveOrSubmitEvaluation } from "@/app/actions/judge-evaluation";
+import ScoringSlider from "@/components/judge/ScoringSlider";
 
 export default function EvaluateClientView({
   teamId,
@@ -261,56 +262,17 @@ export default function EvaluateClientView({
         ) : (
           <div className="space-y-6">
             {criteria.map((criterion, idx) => (
-              <div
+              <ScoringSlider
                 key={criterion.id}
-                className="p-4 bg-surface-color-light/30 border border-border-color space-y-3"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div>
-                    <span className="font-tech text-[11px] text-accent-secondary font-bold mr-2 uppercase">
-                      Criterion #{idx + 1}
-                    </span>
-                    <h3 className="font-heading text-base text-text-primary inline uppercase m-0">
-                      {criterion.title}
-                    </h3>
-                  </div>
-
-                  <span className="font-tech text-xs text-accent-primary font-bold">
-                    Max Marks: {criterion.max_marks} PTS
-                  </span>
-                </div>
-
-                {criterion.description && (
-                  <p className="font-tech text-xs text-text-secondary m-0">
-                    {criterion.description}
-                  </p>
-                )}
-
-                <div className="pt-2 flex items-center gap-4">
-                  <input
-                    type="range"
-                    min="0"
-                    max={criterion.max_marks}
-                    value={scores[criterion.id] || 0}
-                    disabled={isLocked}
-                    onChange={(e) =>
-                      handleScoreChange(criterion.id, Number(e.target.value), criterion.max_marks)
-                    }
-                    className="flex-1 accent-accent-secondary cursor-pointer"
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    max={criterion.max_marks}
-                    value={scores[criterion.id] ?? 0}
-                    disabled={isLocked}
-                    onChange={(e) =>
-                      handleScoreChange(criterion.id, Number(e.target.value), criterion.max_marks)
-                    }
-                    className="w-20 bg-surface-color border border-border-color text-text-primary font-heading text-sm text-center py-1.5 focus:border-accent-secondary outline-none"
-                  />
-                </div>
-              </div>
+                index={idx}
+                criterionId={criterion.id}
+                criterionTitle={criterion.title}
+                description={criterion.description}
+                maxMarks={criterion.max_marks}
+                value={scores[criterion.id] ?? 0}
+                disabled={isLocked}
+                onChange={handleScoreChange}
+              />
             ))}
 
             {/* Qualitative Feedback */}

@@ -1,5 +1,5 @@
 import { requireAdmin } from "@/lib/auth/admin";
-import AdminSidebar from "@/components/AdminSidebar";
+import AdminSidebar from "@/components/admin/Sidebar";
 
 export const dynamic = "force-dynamic";
 
