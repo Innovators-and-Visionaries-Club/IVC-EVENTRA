@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { DataProvider } from '@/components/DataContext'
-import Sidebar from '@/components/Sidebar'
 
 export const metadata: Metadata = {
   title: 'Vice Verse Admin',
@@ -20,14 +19,7 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <DataProvider>
-          <div className="flex flex-col md:flex-row min-h-screen bg-[#050508]">
-            <Sidebar />
-            <main className="flex-1 p-5 md:p-10" style={{
-              background: 'radial-gradient(circle at top right, rgba(255, 0, 127, 0.05), transparent 400px), radial-gradient(circle at bottom left, rgba(0, 240, 255, 0.03), transparent 400px)'
-            }}>
-              {children}
-            </main>
-          </div>
+          {children}
         </DataProvider>
       </body>
     </html>
