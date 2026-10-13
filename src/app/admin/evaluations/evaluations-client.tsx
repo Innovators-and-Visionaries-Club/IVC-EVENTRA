@@ -4,12 +4,30 @@ import { useState } from "react";
 import { Filter, AlertTriangle, ShieldCheck, CheckCircle2 } from "lucide-react";
 import { overrideEvaluationStatus } from "@/app/actions/admin-evaluations";
 
+export interface EvaluationItem {
+  id: string;
+  total_score?: number | null;
+  status: string;
+  created_at?: string;
+  updated_at?: string;
+  round_id: string;
+  judge_id?: string | null;
+  team_id?: string | null;
+}
+
+export interface RoundItem {
+  id: string;
+  title: string;
+  sequence_order?: number;
+  status?: string;
+}
+
 export default function EvaluationsClientView({
   initialEvaluations,
   rounds,
 }: {
-  initialEvaluations: any[];
-  rounds: any[];
+  initialEvaluations: EvaluationItem[];
+  rounds: RoundItem[];
 }) {
   const [evaluations, setEvaluations] = useState(initialEvaluations);
   const [roundFilter, setRoundFilter] = useState("all");
@@ -18,7 +36,7 @@ export default function EvaluationsClientView({
 
   // Override dialog state
   const [isOverrideOpen, setIsOverrideOpen] = useState(false);
-  const [selectedEval, setSelectedEval] = useState<any | null>(null);
+  const [selectedEval, setSelectedEval] = useState<EvaluationItem | null>(null);
   const [targetStatus, setTargetStatus] = useState<"draft" | "submitted" | "locked" | "reopened">("reopened");
   const [overrideReason, setOverrideReason] = useState("");
   const [loading, setLoading] = useState(false);
@@ -37,7 +55,7 @@ export default function EvaluationsClientView({
     return true;
   });
 
-  const handleOpenOverride = (ev: any) => {
+  const handleOpenOverride = (ev: EvaluationItem) => {
     setSelectedEval(ev);
     setTargetStatus(ev.status === "locked" ? "reopened" : "locked");
     setOverrideReason("");
@@ -63,8 +81,8 @@ export default function EvaluationsClientView({
       );
       setFeedback(`Evaluation ${selectedEval.id.slice(0, 8)} successfully updated to ${targetStatus}`);
       setIsOverrideOpen(false);
-    } catch (err: any) {
-      alert(err.message || "Failed to override evaluation");
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to override evaluation");
     } finally {
       setLoading(false);
     }
@@ -214,7 +232,11 @@ export default function EvaluationsClientView({
                 </label>
                 <select
                   value={targetStatus}
-                  onChange={(e) => setTargetStatus(e.target.value as any)}
+                  onChange={(e) =>
+                    setTargetStatus(
+                      e.target.value as "draft" | "submitted" | "locked" | "reopened"
+                    )
+                  }
                   className="w-full bg-surface-color border border-border-color p-2 text-text-primary text-sm focus:border-accent-secondary outline-none uppercase font-semibold"
                 >
                   <option value="reopened">REOPEN (Allow Judge Edit)</option>

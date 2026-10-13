@@ -4,10 +4,32 @@ import { ArrowRight, Layers, FileCheck } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
+interface AssignedTeam {
+  id: string;
+  name: string;
+  leader_name?: string | null;
+  track?: string | null;
+  status?: string | null;
+}
+
+interface JudgeRound {
+  id: string;
+  title: string;
+  status: string;
+  sequence_order: number;
+}
+
+interface JudgeEvaluation {
+  round_id: string;
+  team_id: string;
+  status: string;
+  total_score?: number | null;
+}
+
 export default async function JudgeDashboardPage() {
-  let assignedTeams: any[] = [];
-  let rounds: any[] = [];
-  let evaluations: any[] = [];
+  let assignedTeams: AssignedTeam[] = [];
+  let rounds: JudgeRound[] = [];
+  let evaluations: JudgeEvaluation[] = [];
 
   try {
     const [teamsRes, roundsRes, evalsRes] = await Promise.all([

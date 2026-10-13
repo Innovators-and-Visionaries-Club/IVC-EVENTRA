@@ -72,10 +72,20 @@ export async function getUsersList(params?: {
 
   const teamMap = new Map<string, { team_name: string; team_role: string }>();
   if (teamMembers) {
-    teamMembers.forEach((tm: any) => {
+    (
+      teamMembers as unknown as Array<{
+        user_id: string;
+        role?: string | null;
+        teams?:
+          | { name?: string | null; code?: string | null }
+          | Array<{ name?: string | null; code?: string | null }>
+          | null;
+      }>
+    ).forEach((tm) => {
+      const teamObj = Array.isArray(tm.teams) ? tm.teams[0] : tm.teams;
       teamMap.set(tm.user_id, {
-        team_name: tm.teams?.name || tm.teams?.code || null,
-        team_role: tm.role || null,
+        team_name: teamObj?.name || teamObj?.code || "",
+        team_role: tm.role || "",
       });
     });
   }

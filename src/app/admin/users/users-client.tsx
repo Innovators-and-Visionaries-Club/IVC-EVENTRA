@@ -162,10 +162,10 @@ export default function UsersClientView({
         );
         setNotification({ type: "success", message: res.message });
         router.refresh();
-      } catch (err: any) {
+      } catch (err: unknown) {
         setNotification({
           type: "error",
-          message: err.message || "Failed to update user role",
+          message: err instanceof Error ? err.message : "Failed to update user role",
         });
       }
     });
@@ -191,10 +191,10 @@ export default function UsersClientView({
         role: "participant",
       });
       router.refresh();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setNotification({
         type: "error",
-        message: err.message || "Failed to create user account.",
+        message: err instanceof Error ? err.message : "Failed to create user account.",
       });
     } finally {
       setFormLoading(false);
@@ -217,10 +217,10 @@ export default function UsersClientView({
           message: `User ${target.email || target.full_name} deleted successfully.`,
         });
         router.refresh();
-      } catch (err: any) {
+      } catch (err: unknown) {
         setNotification({
           type: "error",
-          message: err.message || "Failed to delete user account.",
+          message: err instanceof Error ? err.message : "Failed to delete user account.",
         });
       }
     });

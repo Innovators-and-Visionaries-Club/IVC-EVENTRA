@@ -50,7 +50,7 @@ export default function ScannerDesk({
           {!scanning && (
             <div className="text-center text-text-secondary font-tech p-4">
               <QrCode size={40} className="mx-auto mb-2 opacity-50" />
-              <p className="text-xs m-0">Click "Launch Camera" to scan QR badges</p>
+              <p className="text-xs m-0">Click &quot;Launch Camera&quot; to scan QR badges</p>
             </div>
           )}
         </div>

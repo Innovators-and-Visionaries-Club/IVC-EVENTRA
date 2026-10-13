@@ -1,15 +1,30 @@
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { requireAuthenticatedTeamUser } from "@/lib/auth/team";
-import { Trophy, ShieldAlert, Award, Calendar } from "lucide-react";
+import { Trophy, Calendar } from "lucide-react";
 
 export const dynamic = "force-dynamic";
+
+interface TeamBasicInfo {
+  id: string;
+  name: string;
+  track?: string | null;
+}
+
+interface TeamPublishedResult {
+  total_score?: number | null;
+  average_score?: number | null;
+  evaluations_count?: number | null;
+  is_published?: boolean;
+  published_at?: string | null;
+  rank?: number | null;
+}
 
 export default async function TeamResultsPage() {
   const { teamId } = await requireAuthenticatedTeamUser();
   const effectiveTeamId = teamId || "00000000-0000-0000-0000-000000000010";
 
-  let publishedResult: any = null;
-  let teamInfo: any = null;
+  let publishedResult: TeamPublishedResult | null = null;
+  let teamInfo: TeamBasicInfo | null = null;
 
   try {
     const [teamRes, resultRes] = await Promise.all([

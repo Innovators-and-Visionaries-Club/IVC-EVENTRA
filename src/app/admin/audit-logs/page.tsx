@@ -1,19 +1,19 @@
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import AuditLogsClientView from "./audit-logs-client";
+import AuditLogsClientView, { AuditLogItem } from "./audit-logs-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminAuditLogsPage() {
-  let logs: any[] = [];
+  let logs: AuditLogItem[] = [];
 
   try {
-    const { data, error } = await supabaseAdmin
+    const { data } = await supabaseAdmin
       .from("audit_logs")
       .select("*")
       .order("created_at", { ascending: false })
       .limit(100);
 
-    if (data) logs = data;
+    if (data) logs = data as AuditLogItem[];
   } catch (err) {
     console.error("Failed to load audit logs:", err);
   }

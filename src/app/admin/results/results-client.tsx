@@ -4,6 +4,17 @@ import { useState } from "react";
 import { RefreshCw, Globe, Lock, ShieldCheck, CheckCircle2 } from "lucide-react";
 import { triggerResultsEngine } from "@/app/actions/admin-results";
 
+export interface ResultItem {
+  id: string;
+  team_id?: string;
+  rank?: number | null;
+  total_score?: number | null;
+  evaluations_count?: number | null;
+  average_score?: number | null;
+  award_title?: string | null;
+  is_published?: boolean;
+}
+
 export default function ResultsClientView({
   eventId,
   initialResults,
@@ -11,11 +22,11 @@ export default function ResultsClientView({
   initialIsLocked,
 }: {
   eventId: string;
-  initialResults: any[];
+  initialResults: ResultItem[];
   initialIsPublished: boolean;
   initialIsLocked: boolean;
 }) {
-  const [results, setResults] = useState(initialResults);
+  const [results] = useState(initialResults);
   const [isPublished, setIsPublished] = useState(initialIsPublished);
   const [isLocked, setIsLocked] = useState(initialIsLocked);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
@@ -50,8 +61,8 @@ export default function ResultsClientView({
       } else {
         setFeedback("Results recalculated across active evaluations.");
       }
-    } catch (err: any) {
-      alert(err.message || "Failed to trigger results action");
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to trigger results action");
     } finally {
       setLoadingAction(null);
     }
@@ -141,7 +152,7 @@ export default function ResultsClientView({
             {results.length === 0 ? (
               <tr>
                 <td colSpan={5} className="p-6 text-center text-text-secondary italic">
-                  No calculated standings available yet. Run "Recalculate Results" to generate from judge scores.
+                  No calculated standings available yet. Run &quot;Recalculate Results&quot; to generate from judge scores.
                 </td>
               </tr>
             ) : (

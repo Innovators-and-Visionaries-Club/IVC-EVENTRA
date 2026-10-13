@@ -1,11 +1,14 @@
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import EvaluationsClientView from "./evaluations-client";
+import EvaluationsClientView, {
+  EvaluationItem,
+  RoundItem,
+} from "./evaluations-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminEvaluationsPage() {
-  let evaluations: any[] = [];
-  let rounds: any[] = [];
+  let evaluations: EvaluationItem[] = [];
+  let rounds: RoundItem[] = [];
 
   try {
     const [evalsRes, roundsRes] = await Promise.all([

@@ -16,6 +16,49 @@ import Link from "next/link";
 import { saveOrSubmitEvaluation } from "@/app/actions/judge-evaluation";
 import ScoringSlider from "@/components/judge/ScoringSlider";
 
+export interface TeamDetail {
+  id: string;
+  name: string;
+  code?: string | null;
+  leader_name?: string | null;
+  leader_email?: string | null;
+  track?: string | null;
+  member_count?: number | null;
+}
+
+export interface SubmissionDetail {
+  id: string;
+  team_id: string;
+  ppt_url?: string | null;
+  github_url?: string | null;
+  pitch_deck_url?: string | null;
+  prototype_url?: string | null;
+  additional_url?: string | null;
+  demo_url?: string | null;
+}
+
+export interface ActiveRoundDetail {
+  id: string;
+  title: string;
+  status: string;
+  sequence_order: number;
+}
+
+export interface CriterionDetail {
+  id: string;
+  round_id: string;
+  title: string;
+  description?: string | null;
+  max_marks: number;
+}
+
+export interface ExistingEvaluationDetail {
+  id?: string;
+  feedback?: string | null;
+  status?: string;
+  scores_breakdown?: Array<{ criterion_id: string; score: number }> | null;
+}
+
 export default function EvaluateClientView({
   teamId,
   team,
@@ -25,11 +68,11 @@ export default function EvaluateClientView({
   existingEvaluation,
 }: {
   teamId: string;
-  team: any;
-  submission: any;
-  activeRound: any;
-  criteria: any[];
-  existingEvaluation: any;
+  team: TeamDetail | null;
+  submission: SubmissionDetail | null;
+  activeRound: ActiveRoundDetail | null;
+  criteria: CriterionDetail[];
+  existingEvaluation: ExistingEvaluationDetail | null;
 }) {
   // Prepopulate existing scores or set empty
   const initialScores: Record<string, number> = {};
@@ -68,11 +111,15 @@ export default function EvaluateClientView({
         score: scores[c.id] || 0,
       }));
 
+      if (!activeRound) {
+        throw new Error("No active evaluation round found");
+      }
+
       if (!isDraft && scoreItems.length === 0) {
         throw new Error("Cannot submit evaluation without scoring criteria");
       }
 
-      const result = await saveOrSubmitEvaluation({
+      await saveOrSubmitEvaluation({
         round_id: activeRound.id,
         team_id: teamId,
         scores: scoreItems,
@@ -85,8 +132,8 @@ export default function EvaluateClientView({
           ? "Draft saved successfully."
           : "Evaluation officially submitted and recorded!"
       );
-    } catch (err: any) {
-      setErrorMsg(err.message || "Failed to process evaluation");
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : "Failed to process evaluation");
     } finally {
       setLoading(false);
     }
@@ -267,7 +314,7 @@ export default function EvaluateClientView({
                 index={idx}
                 criterionId={criterion.id}
                 criterionTitle={criterion.title}
-                description={criterion.description}
+                description={criterion.description ?? undefined}
                 maxMarks={criterion.max_marks}
                 value={scores[criterion.id] ?? 0}
                 disabled={isLocked}

@@ -64,7 +64,7 @@ export default function SubmissionForm({
           className="w-full bg-surface-color border border-border-color p-3 text-text-primary text-sm focus:border-accent-secondary outline-none disabled:opacity-60"
         />
         <p className="text-[11px] text-text-secondary m-0">
-          Ensure viewing permissions are public or set to "Anyone with the link can view".
+          Ensure viewing permissions are public or set to &quot;Anyone with the link can view&quot;.
         </p>
       </div>
 

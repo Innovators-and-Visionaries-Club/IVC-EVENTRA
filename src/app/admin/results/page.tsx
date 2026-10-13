@@ -1,16 +1,16 @@
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import ResultsClientView from "./results-client";
+import ResultsClientView, { ResultItem } from "./results-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminResultsPage() {
-  let results: any[] = [];
+  let results: ResultItem[] = [];
   let isPublished = false;
   let isLocked = false;
   const eventId = "00000000-0000-0000-0000-000000000001"; // Default flagship event UUID
 
   try {
-    const { data, error } = await supabaseAdmin
+    const { data } = await supabaseAdmin
       .from("event_results")
       .select("*")
       .order("total_score", { ascending: false });

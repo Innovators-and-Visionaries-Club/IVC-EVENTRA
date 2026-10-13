@@ -1,11 +1,14 @@
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import RoundsClientView from "./rounds-client";
+import RoundsClientView, {
+  AdminRoundItem,
+  AdminCriterionItem,
+} from "./rounds-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminRoundsPage() {
-  let rounds: any[] = [];
-  let criteria: any[] = [];
+  let rounds: AdminRoundItem[] = [];
+  let criteria: AdminCriterionItem[] = [];
 
   try {
     const [roundsRes, criteriaRes] = await Promise.all([

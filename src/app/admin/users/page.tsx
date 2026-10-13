@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { getUsersList } from "@/app/actions/admin-users";
+import { getUsersList, UserProfileItem } from "@/app/actions/admin-users";
 import UsersClientView from "./users-client";
 import { Users, Loader2 } from "lucide-react";
 
@@ -12,7 +12,7 @@ export default async function AdminUsersPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  let initialUsers: any[] = [];
+  let initialUsers: UserProfileItem[] = [];
   try {
     initialUsers = await getUsersList();
   } catch (err) {

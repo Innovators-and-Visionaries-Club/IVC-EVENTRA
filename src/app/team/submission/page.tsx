@@ -1,6 +1,9 @@
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { requireAuthenticatedTeamUser } from "@/lib/auth/team";
-import TeamSubmissionClientView from "./submission-client";
+import TeamSubmissionClientView, {
+  ActiveRoundInfo,
+  CurrentSubmissionInfo,
+} from "./submission-client";
 
 export const dynamic = "force-dynamic";
 
@@ -8,8 +11,8 @@ export default async function TeamSubmissionPage() {
   const { teamId, role } = await requireAuthenticatedTeamUser();
 
   const effectiveTeamId = teamId || "00000000-0000-0000-0000-000000000010"; // Fallback demo team context
-  let activeRound: any = null;
-  let currentSubmission: any = null;
+  let activeRound: ActiveRoundInfo | null = null;
+  let currentSubmission: CurrentSubmissionInfo | null = null;
 
   try {
     const [roundRes, subRes] = await Promise.all([

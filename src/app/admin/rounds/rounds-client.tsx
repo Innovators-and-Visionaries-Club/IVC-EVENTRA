@@ -11,15 +11,33 @@ import {
   type RoundStatus,
 } from "@/app/actions/admin-rounds";
 
+export interface AdminRoundItem {
+  id: string;
+  title: string;
+  sequence_order: number;
+  status: RoundStatus;
+  event_id?: string;
+}
+
+export interface AdminCriterionItem {
+  id: string;
+  round_id: string;
+  title: string;
+  description?: string | null;
+  max_marks: number;
+  weightage?: number | null;
+  is_required?: boolean;
+}
+
 export default function RoundsClientView({
   initialRounds,
   initialCriteria,
 }: {
-  initialRounds: any[];
-  initialCriteria: any[];
+  initialRounds: AdminRoundItem[];
+  initialCriteria: AdminCriterionItem[];
 }) {
-  const [rounds, setRounds] = useState(initialRounds);
-  const [criteria, setCriteria] = useState(initialCriteria);
+  const [rounds, setRounds] = useState<AdminRoundItem[]>(initialRounds);
+  const [criteria, setCriteria] = useState<AdminCriterionItem[]>(initialCriteria);
   const [expandedRound, setExpandedRound] = useState<string | null>(
     initialRounds[0]?.id || null
   );
@@ -56,8 +74,8 @@ export default function RoundsClientView({
       setIsRoundModalOpen(false);
       setRoundTitle("");
       setMsg("Round created successfully!");
-    } catch (err: any) {
-      alert(err.message || "Failed to create round");
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to create round");
     } finally {
       setLoading(false);
     }
@@ -69,12 +87,12 @@ export default function RoundsClientView({
       setRounds((prev) =>
         prev.map((r) => (r.id === roundId ? { ...r, status: newStatus } : r))
       );
-    } catch (err: any) {
-      alert(err.message || "Failed to update round status");
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to update round status");
     }
   };
 
-  const handleOpenCriterionModal = (roundId: string, crit?: any) => {
+  const handleOpenCriterionModal = (roundId: string, crit?: AdminCriterionItem) => {
     setSelectedRoundId(roundId);
     if (crit) {
       setEditingCriterionId(crit.id);
@@ -127,8 +145,8 @@ export default function RoundsClientView({
         setCriteria((prev) => [...prev, created || { id: crypto.randomUUID(), round_id: selectedRoundId, title: criterionTitle, description: criterionDesc, max_marks: criterionMaxMarks, is_required: criterionRequired }]);
       }
       setIsCriterionModalOpen(false);
-    } catch (err: any) {
-      alert(err.message || "Failed to save criterion");
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to save criterion");
     } finally {
       setLoading(false);
     }
@@ -139,8 +157,8 @@ export default function RoundsClientView({
     try {
       await deleteCriterion(criterionId);
       setCriteria((prev) => prev.filter((c) => c.id !== criterionId));
-    } catch (err: any) {
-      alert(err.message || "Failed to delete criterion");
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to delete criterion");
     }
   };
 
@@ -169,7 +187,7 @@ export default function RoundsClientView({
       <div className="space-y-4">
         {rounds.length === 0 ? (
           <div className="glass-panel p-8 text-center text-text-secondary font-tech">
-            No rounds configured yet. Click "Create Round" above to get started.
+            No rounds configured yet. Click &quot;Create Round&quot; above to get started.
           </div>
         ) : (
           rounds.map((round) => {

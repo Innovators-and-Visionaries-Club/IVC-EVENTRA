@@ -11,6 +11,10 @@ export type Team = {
   judgeId: string | null;
   disqualified: boolean;
   disqualifyReason: string;
+  leadName?: string;
+  email?: string;
+  college?: string;
+  track?: string;
 };
 
 export type Judge = {
@@ -20,6 +24,7 @@ export type Judge = {
   initials: string;
   specialization: string;
   theme: string;
+  expertise?: string;
 };
 
 export type ScheduleItem = {
@@ -34,16 +39,16 @@ type DataContextType = {
   teams: Team[];
   judges: Judge[];
   schedule: ScheduleItem[];
-  addJudge: (judge: any) => void;
-  editJudge: (id: string, updated: any) => void;
+  addJudge: (judge: Partial<Judge>) => void;
+  editJudge: (id: string, updated: Partial<Judge>) => void;
   deleteJudge: (id: string) => void;
   assignJudgeToTeam: (teamId: string, judgeId: string) => void;
-  addTeam: (team: any) => void;
-  editTeam: (id: string, updated: any) => void;
+  addTeam: (team: Partial<Team>) => void;
+  editTeam: (id: string, updated: Partial<Team>) => void;
   deleteTeam: (id: string) => void;
   disqualifyTeam: (id: string, reason: string) => void;
-  addScheduleItem: (item: any) => void;
-  editScheduleItem: (id: string, updated: any) => void;
+  addScheduleItem: (item: Omit<ScheduleItem, "id"> | Partial<ScheduleItem>) => void;
+  editScheduleItem: (id: string, updated: Partial<ScheduleItem>) => void;
   deleteScheduleItem: (id: string) => void;
 };
 
@@ -81,8 +86,21 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   }, [schedule, isClient]);
 
   // Judge Actions
-  const addJudge = (judge: any) => setJudges(prev => [...prev, { ...judge, id: `J${Date.now()}` }]);
-  const editJudge = (id: string, updated: any) => setJudges(prev => prev.map(j => j.id === id ? { ...j, ...updated } : j));
+  const addJudge = (judge: Partial<Judge>) => {
+    setJudges((prev) => [
+      ...prev,
+      {
+        id: `J${Date.now()}`,
+        name: judge.name || "",
+        email: judge.email || "",
+        initials: judge.initials || (judge.name ? judge.name.slice(0, 2).toUpperCase() : "JD"),
+        specialization: judge.specialization || judge.expertise || "",
+        theme: judge.theme || "",
+        expertise: judge.expertise,
+      },
+    ]);
+  };
+  const editJudge = (id: string, updated: Partial<Judge>) => setJudges(prev => prev.map(j => j.id === id ? { ...j, ...updated } : j));
   const deleteJudge = (id: string) => {
     setJudges(prev => prev.filter(j => j.id !== id));
     setTeams(prev => prev.map(t => t.judgeId === id ? { ...t, judgeId: null } : t));
@@ -93,11 +111,26 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     setTeams(prev => prev.map(t => t.id === teamId ? { ...t, judgeId: judgeId === "" ? null : judgeId } : t));
   };
   
-  const addTeam = (team: any) => {
-    setTeams(prev => [...prev, { ...team, id: `T${Date.now()}`, judgeId: null, disqualified: false, disqualifyReason: '' }]);
+  const addTeam = (team: Partial<Team>) => {
+    setTeams((prev) => [
+      ...prev,
+      {
+        id: `T${Date.now()}`,
+        name: team.name || "",
+        theme: team.theme || "",
+        members: team.members || [],
+        judgeId: null,
+        disqualified: false,
+        disqualifyReason: "",
+        leadName: team.leadName,
+        email: team.email,
+        college: team.college,
+        track: team.track,
+      },
+    ]);
   };
   
-  const editTeam = (id: string, updated: any) => {
+  const editTeam = (id: string, updated: Partial<Team>) => {
     setTeams(prev => prev.map(t => t.id === id ? { ...t, ...updated } : t));
   };
   
@@ -110,8 +143,8 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Schedule Actions
-  const addScheduleItem = (item: any) => setSchedule(prev => [...prev, { ...item, id: `S${Date.now()}` }]);
-  const editScheduleItem = (id: string, updated: any) => setSchedule(prev => prev.map(s => s.id === id ? { ...s, ...updated } : s));
+  const addScheduleItem = (item: Omit<ScheduleItem, "id"> | Partial<ScheduleItem>) => setSchedule(prev => [...prev, { title: "", time: "", description: "", status: "", ...item, id: `S${Date.now()}` }]);
+  const editScheduleItem = (id: string, updated: Partial<ScheduleItem>) => setSchedule(prev => prev.map(s => s.id === id ? { ...s, ...updated } : s));
   const deleteScheduleItem = (id: string) => setSchedule(prev => prev.filter(s => s.id !== id));
 
   return (

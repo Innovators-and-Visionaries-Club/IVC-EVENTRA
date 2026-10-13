@@ -3,7 +3,17 @@
 import { useState } from "react";
 import { Search, ShieldAlert, Clock } from "lucide-react";
 
-export default function AuditLogsClientView({ initialLogs }: { initialLogs: any[] }) {
+export interface AuditLogItem {
+  id: string;
+  action: string;
+  admin_id?: string | null;
+  entity_id?: string | null;
+  entity_type?: string | null;
+  details?: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export default function AuditLogsClientView({ initialLogs }: { initialLogs: AuditLogItem[] }) {
   const [logs] = useState(initialLogs);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -59,8 +69,12 @@ export default function AuditLogsClientView({ initialLogs }: { initialLogs: any[
               </tr>
             ) : (
               filteredLogs.map((log) => {
-                const details = typeof log.details === "object" ? log.details : null;
-                const reason = details?.reason || details?.action || "-";
+                const details = typeof log.details === "object" && log.details !== null ? (log.details as Record<string, unknown>) : null;
+                const reason = typeof details?.reason === "string" 
+                  ? details.reason 
+                  : typeof details?.action === "string" 
+                  ? details.action 
+                  : "-";
 
                 return (
                   <tr key={log.id} className="hover:bg-surface-color-light/20 transition-colors">

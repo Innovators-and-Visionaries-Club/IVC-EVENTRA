@@ -2,16 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  QrCode,
   CheckCircle2,
   AlertCircle,
-  Camera,
   Coffee,
   Utensils,
   Gift,
   UserCheck,
-  Search,
-  RefreshCw,
 } from "lucide-react";
 import {
   fetchTeamMembersForScan,
@@ -20,15 +16,40 @@ import {
 import type { ActionType } from "@/lib/validations/operations";
 import ScannerDesk from "@/components/ops/ScannerDesk";
 
+export interface TeamScanMember {
+  id: string;
+  user_id?: string;
+  name?: string | null;
+  role?: string | null;
+  email?: string | null;
+}
+
+export interface ActivityLogEntry {
+  participant_id: string;
+  action_type: string;
+  created_at: string;
+}
+
+export interface TeamScanData {
+  team: {
+    id: string;
+    name: string;
+    track?: string | null;
+    leader_name?: string | null;
+  };
+  members: TeamScanMember[];
+  activityLogs: ActivityLogEntry[];
+}
+
 export default function ScannerClientView() {
   const [scanning, setScanning] = useState(false);
   const [manualId, setManualId] = useState("");
-  const [teamData, setTeamData] = useState<any | null>(null);
+  const [teamData, setTeamData] = useState<TeamScanData | null>(null);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const html5QrCodeRef = useRef<any>(null);
+  const html5QrCodeRef = useRef<{ stop: () => Promise<void>; clear: () => void } | null>(null);
 
   const startScanner = async () => {
     try {
@@ -52,8 +73,8 @@ export default function ScannerClientView() {
         }
       );
       setScanning(true);
-    } catch (err: any) {
-      setErrorMsg(err.message || "Failed to initialize camera scanner");
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : "Failed to initialize camera scanner");
       setScanning(false);
     }
   };
@@ -91,8 +112,8 @@ export default function ScannerClientView() {
       const res = await fetchTeamMembersForScan(teamId);
       setTeamData(res);
       setSuccessMsg(`Loaded roster for team "${res.team.name}"`);
-    } catch (err: any) {
-      setErrorMsg(err.message || "Failed to fetch team details");
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : "Failed to fetch team details");
       setTeamData(null);
     } finally {
       setLoading(false);
@@ -117,21 +138,25 @@ export default function ScannerClientView() {
       });
 
       // Update state locally
-      setTeamData((prev: any) => ({
-        ...prev,
-        activityLogs: [
-          ...prev.activityLogs,
-          {
-            participant_id: participantId,
-            action_type: actionType,
-            created_at: new Date().toISOString(),
-          },
-        ],
-      }));
+      setTeamData((prev) =>
+        !prev
+          ? null
+          : {
+              ...prev,
+              activityLogs: [
+                ...prev.activityLogs,
+                {
+                  participant_id: participantId,
+                  action_type: actionType,
+                  created_at: new Date().toISOString(),
+                },
+              ],
+            }
+      );
 
       setSuccessMsg(`Successfully claimed "${actionType.toUpperCase()}"!`);
-    } catch (err: any) {
-      setErrorMsg(err.message || "Action claim failed");
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : "Action claim failed");
     } finally {
       setActionLoading(null);
     }
@@ -139,7 +164,7 @@ export default function ScannerClientView() {
 
   const isClaimed = (participantId: string, actionType: string) => {
     return teamData?.activityLogs?.some(
-      (log: any) =>
+      (log: ActivityLogEntry) =>
         log.participant_id === participantId && log.action_type === actionType
     );
   };
@@ -219,7 +244,7 @@ export default function ScannerClientView() {
                     </td>
                   </tr>
                 ) : (
-                  teamData.members.map((m: any) => {
+                  teamData.members.map((m: TeamScanMember) => {
                     const regDone = isClaimed(m.id, "registration");
                     const goodiesDone = isClaimed(m.id, "goodies");
                     const lunchDone = isClaimed(m.id, "lunch");

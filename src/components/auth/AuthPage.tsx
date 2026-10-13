@@ -56,8 +56,8 @@ export default function AuthPage({ isSignUp = false }: { isSignUp?: boolean }) {
           router.push(redirectUrl);
         }
       }
-    } catch (err: any) {
-      setErrorMsg(err.message || "Authentication failed");
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : "Authentication failed");
     } finally {
       setLoading(false);
     }

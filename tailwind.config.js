@@ -32,6 +32,7 @@ module.exports = {
         heading: ['Orbitron', 'sans-serif'],
         tech: ['Share Tech Mono', 'monospace'],
         pricedown: ['Pricedown', 'sans-serif'],
+        roboto: ['Roboto', 'sans-serif'],
       },
     },
   },

@@ -1,5 +1,11 @@
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import EvaluateClientView from "./evaluate-client";
+import EvaluateClientView, {
+  TeamDetail,
+  SubmissionDetail,
+  ActiveRoundDetail,
+  CriterionDetail,
+  ExistingEvaluationDetail,
+} from "./evaluate-client";
 
 export const dynamic = "force-dynamic";
 
@@ -10,11 +16,11 @@ export default async function EvaluateTeamPage({
 }) {
   const { teamId } = await params;
 
-  let team: any = null;
-  let submission: any = null;
-  let activeRound: any = null;
-  let criteria: any[] = [];
-  let existingEvaluation: any = null;
+  let team: TeamDetail | null = null;
+  let submission: SubmissionDetail | null = null;
+  let activeRound: ActiveRoundDetail | null = null;
+  let criteria: CriterionDetail[] = [];
+  let existingEvaluation: ExistingEvaluationDetail | null = null;
 
   try {
     const [teamRes, subRes, roundRes] = await Promise.all([
@@ -32,17 +38,18 @@ export default async function EvaluateTeamPage({
     if (teamRes.data) team = teamRes.data;
     if (subRes.data) submission = subRes.data;
     if (roundRes.data) {
-      activeRound = roundRes.data;
+      const currentRound = roundRes.data;
+      activeRound = currentRound;
 
       const [critRes, evalRes] = await Promise.all([
         supabaseAdmin
           .from("evaluation_criteria")
           .select("*")
-          .eq("round_id", activeRound.id),
+          .eq("round_id", currentRound.id),
         supabaseAdmin
           .from("evaluations")
           .select("*")
-          .eq("round_id", activeRound.id)
+          .eq("round_id", currentRound.id)
           .eq("team_id", teamId)
           .maybeSingle(),
       ]);

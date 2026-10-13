@@ -4,12 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   KeyRound,
-  ShieldAlert,
   AlertTriangle,
   Lock,
   ArrowRight,
-  ShieldCheck,
-  CheckCircle2,
 } from "lucide-react";
 import {
   verifyAdminPasscode,
@@ -54,8 +51,8 @@ export default function AdminPasscodePage() {
         setIsLocked(res.isLocked);
         setPasscode("");
       }
-    } catch (err: any) {
-      setErrorMsg(err.message || "Failed to verify passcode.");
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : "Failed to verify passcode.");
     } finally {
       setLoading(false);
     }

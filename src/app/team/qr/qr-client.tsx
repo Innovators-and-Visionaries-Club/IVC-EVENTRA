@@ -55,6 +55,7 @@ export default function TeamQrClientView({
       <div className="flex justify-center my-4">
         <div className="p-4 bg-white rounded-lg shadow-xl inline-block border-2 border-accent-primary">
           {qrUrl ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
             <img
               src={qrUrl}
               alt="Team Official QR Code"

@@ -8,7 +8,14 @@ export default async function TeamQrPage() {
   const { teamId } = await requireAuthenticatedTeamUser();
   const effectiveTeamId = teamId || "00000000-0000-0000-0000-000000000010";
 
-  let teamInfo: any = null;
+  interface TeamInfo {
+    id: string;
+    name: string;
+    track?: string | null;
+    leader_name?: string | null;
+  }
+
+  let teamInfo: TeamInfo | null = null;
   try {
     const { data } = await supabaseAdmin
       .from("teams")

@@ -2,18 +2,29 @@
 
 import { useState } from "react";
 import {
-  FileText,
-  Github,
-  Presentation,
-  Laptop,
-  FolderPlus,
   Lock,
   CheckCircle2,
   AlertCircle,
-  Upload,
 } from "lucide-react";
 import { upsertTeamSubmission } from "@/app/actions/team-submission";
 import SubmissionForm from "@/components/team/SubmissionForm";
+
+export interface ActiveRoundInfo {
+  id: string;
+  title: string;
+  sequence_order?: number;
+  status?: string;
+}
+
+export interface CurrentSubmissionInfo {
+  id?: string;
+  ppt_url?: string | null;
+  github_url?: string | null;
+  pitch_deck_url?: string | null;
+  prototype_url?: string | null;
+  additional_material_url?: string | null;
+  submitted_at?: string | null;
+}
 
 export default function TeamSubmissionClientView({
   teamId,
@@ -23,8 +34,8 @@ export default function TeamSubmissionClientView({
   isLeader,
 }: {
   teamId: string;
-  activeRound: any;
-  currentSubmission: any;
+  activeRound: ActiveRoundInfo | null;
+  currentSubmission: CurrentSubmissionInfo | null;
   isLocked: boolean;
   isLeader: boolean;
 }) {
@@ -61,8 +72,8 @@ export default function TeamSubmissionClientView({
       });
 
       setSuccessMsg("Team deliverables successfully updated and submitted for evaluation!");
-    } catch (err: any) {
-      setErrorMsg(err.message || "Failed to submit deliverables");
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : "Failed to submit deliverables");
     } finally {
       setLoading(false);
     }

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -38,12 +39,12 @@ export default async function AdminLayout({
           <p className="font-tech text-text-secondary text-sm mb-6">
             Admin privileges required to access mission control.
           </p>
-          <a
+          <Link
             href="/"
             className="inline-block px-6 py-3 bg-surface-color-light border border-border-color hover:border-accent-secondary font-tech font-bold uppercase tracking-wider text-xs text-text-primary transition-all"
           >
             Return to Dashboard
-          </a>
+          </Link>
         </div>
       </div>
     );

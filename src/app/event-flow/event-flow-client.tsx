@@ -2,7 +2,7 @@
 
 import React, { useContext, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Calendar, Clock, MapPin, Edit3, Plus, Trash2, X } from 'lucide-react';
+import { Clock, MapPin, Edit3, Plus, Trash2, X } from 'lucide-react';
 import { DataContext, ScheduleItem } from '@/components/DataContext';
 
 export default function EventFlow() {
