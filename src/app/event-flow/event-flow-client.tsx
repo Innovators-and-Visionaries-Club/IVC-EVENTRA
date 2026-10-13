@@ -119,19 +119,19 @@ export default function EventFlow() {
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div className="flex flex-col gap-2">
                 <label className="text-[0.9rem] text-accent-primary uppercase font-tech font-bold tracking-[2px]">Time (e.g. 09:00 AM)</label>
-                <input required type="text" value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} className="bg-[rgba(13,13,20,0.7)] border border-border-color text-white p-3 rounded outline-none focus:border-accent-primary transition-colors" />
+                <input required type="text" value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} className="bg-[rgba(13,13,20,0.7)] border border-border-color text-white p-3 rounded outline-none focus:border-accent-primary transition-colors font-sans tracking-normal" />
               </div>
               <div className="flex flex-col gap-2">
                 <label className="text-[0.9rem] text-accent-primary uppercase font-tech font-bold tracking-[2px]">Title</label>
-                <input required type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="bg-[rgba(13,13,20,0.7)] border border-border-color text-white p-3 rounded outline-none focus:border-accent-primary transition-colors" />
+                <input required type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="bg-[rgba(13,13,20,0.7)] border border-border-color text-white p-3 rounded outline-none focus:border-accent-primary transition-colors font-sans tracking-normal" />
               </div>
               <div className="flex flex-col gap-2">
                 <label className="text-[0.9rem] text-accent-primary uppercase font-tech font-bold tracking-[2px]">Location</label>
-                <input required type="text" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} className="bg-[rgba(13,13,20,0.7)] border border-border-color text-white p-3 rounded outline-none focus:border-accent-primary transition-colors" />
+                <input required type="text" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} className="bg-[rgba(13,13,20,0.7)] border border-border-color text-white p-3 rounded outline-none focus:border-accent-primary transition-colors font-sans tracking-normal" />
               </div>
               <div className="flex flex-col gap-2">
                 <label className="text-[0.9rem] text-accent-primary uppercase font-tech font-bold tracking-[2px]">Status</label>
-                <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} className="bg-[rgba(13,13,20,0.7)] border border-border-color text-white p-3 rounded outline-none focus:border-accent-primary transition-colors">
+                <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} className="bg-[rgba(13,13,20,0.7)] border border-border-color text-white p-3 rounded outline-none focus:border-accent-primary transition-colors font-sans tracking-normal">
                   <option value="upcoming">Upcoming</option>
                   <option value="active">Active</option>
                   <option value="completed">Completed</option>

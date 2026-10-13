@@ -127,7 +127,7 @@ export default function AdminPasscodePage() {
                 value={passcode}
                 onChange={(e) => setPasscode(e.target.value)}
                 placeholder="Enter secret key..."
-                className="w-full bg-surface-color border border-border-color p-2.5 pl-9 text-text-primary text-sm focus:border-accent-secondary outline-none tracking-widest disabled:opacity-50"
+                className="w-full bg-surface-color border border-border-color p-2.5 pl-9 text-text-primary text-sm focus:border-accent-secondary outline-none font-sans tracking-normal disabled:opacity-50"
               />
             </div>
           </div>

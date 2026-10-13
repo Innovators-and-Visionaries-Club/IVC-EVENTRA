@@ -61,7 +61,7 @@ export default function SubmissionForm({
           value={pptUrl}
           onChange={(e) => onPptChange(e.target.value)}
           placeholder="https://docs.google.com/presentation/d/... or OneDrive / Canva Link"
-          className="w-full bg-surface-color border border-border-color p-3 text-text-primary text-sm focus:border-accent-secondary outline-none disabled:opacity-60"
+          className="w-full bg-surface-color border border-border-color p-3 text-text-primary text-sm font-sans tracking-normal focus:border-accent-secondary outline-none disabled:opacity-60"
         />
         <p className="text-[11px] text-text-secondary m-0">
           Ensure viewing permissions are public or set to &quot;Anyone with the link can view&quot;.
@@ -80,7 +80,7 @@ export default function SubmissionForm({
           value={githubUrl}
           onChange={(e) => onGithubChange(e.target.value)}
           placeholder="https://github.com/organization/repo"
-          className="w-full bg-surface-color border border-border-color p-3 text-text-primary text-sm focus:border-accent-secondary outline-none disabled:opacity-60"
+          className="w-full bg-surface-color border border-border-color p-3 text-text-primary text-sm font-sans tracking-normal focus:border-accent-secondary outline-none disabled:opacity-60"
         />
       </div>
 
@@ -96,7 +96,7 @@ export default function SubmissionForm({
           value={pitchDeckUrl}
           onChange={(e) => onPitchDeckChange(e.target.value)}
           placeholder="https://..."
-          className="w-full bg-surface-color border border-border-color p-3 text-text-primary text-sm focus:border-accent-secondary outline-none disabled:opacity-60"
+          className="w-full bg-surface-color border border-border-color p-3 text-text-primary text-sm font-sans tracking-normal focus:border-accent-secondary outline-none disabled:opacity-60"
         />
       </div>
 
@@ -112,7 +112,7 @@ export default function SubmissionForm({
           value={prototypeUrl}
           onChange={(e) => onPrototypeChange(e.target.value)}
           placeholder="https://my-app.vercel.app or Figma prototype"
-          className="w-full bg-surface-color border border-border-color p-3 text-text-primary text-sm focus:border-accent-secondary outline-none disabled:opacity-60"
+          className="w-full bg-surface-color border border-border-color p-3 text-text-primary text-sm font-sans tracking-normal focus:border-accent-secondary outline-none disabled:opacity-60"
         />
       </div>
 
@@ -128,7 +128,7 @@ export default function SubmissionForm({
           value={additionalUrl}
           onChange={(e) => onAdditionalChange(e.target.value)}
           placeholder="https://drive.google.com/drive/folders/..."
-          className="w-full bg-surface-color border border-border-color p-3 text-text-primary text-sm focus:border-accent-secondary outline-none disabled:opacity-60"
+          className="w-full bg-surface-color border border-border-color p-3 text-text-primary text-sm font-sans tracking-normal focus:border-accent-secondary outline-none disabled:opacity-60"
         />
       </div>
 

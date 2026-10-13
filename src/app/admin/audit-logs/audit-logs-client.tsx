@@ -43,7 +43,7 @@ export default function AuditLogsClientView({ initialLogs }: { initialLogs: Audi
             placeholder="Search action, admin, or target ID..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-surface-color border border-border-color text-text-primary text-xs font-tech pl-9 pr-3 py-1.5 focus:border-accent-secondary outline-none"
+            className="w-full bg-surface-color border border-border-color text-text-primary text-xs font-sans tracking-normal pl-9 pr-3 py-1.5 focus:border-accent-secondary outline-none"
           />
         </div>
       </div>

@@ -333,7 +333,7 @@ export default function RoundsClientView({
                   value={roundTitle}
                   onChange={(e) => setRoundTitle(e.target.value)}
                   placeholder="e.g. Round 1 - Preliminary Pitch"
-                  className="w-full bg-surface-color border border-border-color p-2 text-text-primary text-sm focus:border-accent-secondary outline-none"
+                  className="w-full bg-surface-color border border-border-color p-2 text-text-primary text-sm focus:border-accent-secondary outline-none font-sans tracking-normal"
                 />
               </div>
 
@@ -347,7 +347,7 @@ export default function RoundsClientView({
                   required
                   value={roundOrder}
                   onChange={(e) => setRoundOrder(Number(e.target.value))}
-                  className="w-full bg-surface-color border border-border-color p-2 text-text-primary text-sm focus:border-accent-secondary outline-none"
+                  className="w-full bg-surface-color border border-border-color p-2 text-text-primary text-sm focus:border-accent-secondary outline-none font-sans tracking-normal"
                 />
               </div>
 
@@ -407,7 +407,7 @@ export default function RoundsClientView({
                   value={criterionTitle}
                   onChange={(e) => setCriterionTitle(e.target.value)}
                   placeholder="e.g. Technical Feasibility"
-                  className="w-full bg-surface-color border border-border-color p-2 text-text-primary text-sm focus:border-accent-tertiary outline-none"
+                  className="w-full bg-surface-color border border-border-color p-2 text-text-primary text-sm focus:border-accent-tertiary outline-none font-sans tracking-normal"
                 />
               </div>
 
@@ -419,7 +419,7 @@ export default function RoundsClientView({
                   value={criterionDesc}
                   onChange={(e) => setCriterionDesc(e.target.value)}
                   placeholder="Details for judges on how to evaluate this aspect..."
-                  className="w-full bg-surface-color border border-border-color p-2 text-text-primary text-sm focus:border-accent-tertiary outline-none h-20"
+                  className="w-full bg-surface-color border border-border-color p-2 text-text-primary text-sm focus:border-accent-tertiary outline-none h-20 font-sans tracking-normal"
                 />
               </div>
 
@@ -434,7 +434,7 @@ export default function RoundsClientView({
                     required
                     value={criterionMaxMarks}
                     onChange={(e) => setCriterionMaxMarks(Number(e.target.value))}
-                    className="w-full bg-surface-color border border-border-color p-2 text-text-primary text-sm focus:border-accent-tertiary outline-none"
+                    className="w-full bg-surface-color border border-border-color p-2 text-text-primary text-sm focus:border-accent-tertiary outline-none font-sans tracking-normal"
                   />
                 </div>
                 <div className="flex items-center gap-2 pt-6">

@@ -149,7 +149,7 @@ export default function EvaluationsClientView({
           placeholder="Search by ID, Team, or Judge..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full md:w-64 bg-surface-color border border-border-color text-text-primary text-xs font-tech px-3 py-1.5 focus:border-accent-secondary outline-none"
+          className="w-full md:w-64 bg-surface-color border border-border-color text-text-primary text-xs font-sans tracking-normal px-3 py-1.5 focus:border-accent-secondary outline-none"
         />
       </div>
 
@@ -256,7 +256,7 @@ export default function EvaluationsClientView({
                   value={overrideReason}
                   onChange={(e) => setOverrideReason(e.target.value)}
                   placeholder="State the administrative or technical justification..."
-                  className="w-full bg-surface-color border border-border-color p-2 text-text-primary text-sm focus:border-accent-secondary outline-none h-24"
+                  className="w-full bg-surface-color border border-border-color p-2 text-text-primary text-sm focus:border-accent-secondary outline-none h-24 font-sans tracking-normal"
                 />
               </div>
 

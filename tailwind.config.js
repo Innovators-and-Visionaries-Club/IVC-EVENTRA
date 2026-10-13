@@ -28,6 +28,7 @@ module.exports = {
         foreground: "hsl(var(--foreground))",
       },
       fontFamily: {
+        sans: ['Roboto', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'sans-serif'],
         body: ['Rajdhani', 'sans-serif'],
         heading: ['Orbitron', 'sans-serif'],
         tech: ['Share Tech Mono', 'monospace'],

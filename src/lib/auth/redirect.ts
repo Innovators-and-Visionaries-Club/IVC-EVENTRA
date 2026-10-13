@@ -24,6 +24,7 @@ export async function getRoleRedirectUrl(userId: string): Promise<string> {
     case "staff":
     case "organizer":
       return "/ops/scanner";
+    case "leader":
     case "participant": {
       // Check team membership
       const { data: member } = await supabase

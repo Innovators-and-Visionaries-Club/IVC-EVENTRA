@@ -46,7 +46,7 @@ export default function EventDetails() {
             <input 
               type="text" 
               name="clubName" 
-              className="w-full py-3 px-4 bg-[rgba(13,13,20,0.7)] border border-border-color text-text-primary rounded font-body transition-all duration-200 outline-none focus:border-accent-secondary focus:shadow-[0_0_10px_rgba(255,0,127,0.2)]" 
+              className="w-full py-3 px-4 bg-[rgba(13,13,20,0.7)] border border-border-color text-text-primary rounded font-sans tracking-normal transition-all duration-200 outline-none focus:border-accent-secondary focus:shadow-[0_0_10px_rgba(255,0,127,0.2)]" 
               value={formData.clubName}
               onChange={handleChange}
             />
@@ -57,7 +57,7 @@ export default function EventDetails() {
             <input 
               type="text" 
               name="eventName" 
-              className="w-full py-3 px-4 bg-[rgba(13,13,20,0.7)] border border-border-color text-text-primary rounded font-body transition-all duration-200 outline-none focus:border-accent-secondary focus:shadow-[0_0_10px_rgba(255,0,127,0.2)]" 
+              className="w-full py-3 px-4 bg-[rgba(13,13,20,0.7)] border border-border-color text-text-primary rounded font-sans tracking-normal transition-all duration-200 outline-none focus:border-accent-secondary focus:shadow-[0_0_10px_rgba(255,0,127,0.2)]" 
               value={formData.eventName}
               onChange={handleChange}
             />
@@ -68,7 +68,7 @@ export default function EventDetails() {
             <input 
               type="text" 
               name="tagline" 
-              className="w-full py-3 px-4 bg-[rgba(13,13,20,0.7)] border border-border-color text-text-primary rounded font-body transition-all duration-200 outline-none focus:border-accent-secondary focus:shadow-[0_0_10px_rgba(255,0,127,0.2)]" 
+              className="w-full py-3 px-4 bg-[rgba(13,13,20,0.7)] border border-border-color text-text-primary rounded font-sans tracking-normal transition-all duration-200 outline-none focus:border-accent-secondary focus:shadow-[0_0_10px_rgba(255,0,127,0.2)]" 
               value={formData.tagline}
               onChange={handleChange}
             />
@@ -79,7 +79,7 @@ export default function EventDetails() {
             <input 
               type="text" 
               name="venue" 
-              className="w-full py-3 px-4 bg-[rgba(13,13,20,0.7)] border border-border-color text-text-primary rounded font-body transition-all duration-200 outline-none focus:border-accent-secondary focus:shadow-[0_0_10px_rgba(255,0,127,0.2)]" 
+              className="w-full py-3 px-4 bg-[rgba(13,13,20,0.7)] border border-border-color text-text-primary rounded font-sans tracking-normal transition-all duration-200 outline-none focus:border-accent-secondary focus:shadow-[0_0_10px_rgba(255,0,127,0.2)]" 
               value={formData.venue}
               onChange={handleChange}
             />
@@ -90,7 +90,7 @@ export default function EventDetails() {
             <input 
               type="date" 
               name="eventDate" 
-              className="w-full py-3 px-4 bg-[rgba(13,13,20,0.7)] border border-border-color text-text-primary rounded font-body transition-all duration-200 outline-none focus:border-accent-secondary focus:shadow-[0_0_10px_rgba(255,0,127,0.2)]" 
+              className="w-full py-3 px-4 bg-[rgba(13,13,20,0.7)] border border-border-color text-text-primary rounded font-sans tracking-normal transition-all duration-200 outline-none focus:border-accent-secondary focus:shadow-[0_0_10px_rgba(255,0,127,0.2)]" 
               value={formData.eventDate}
               onChange={handleChange}
             />
@@ -101,7 +101,7 @@ export default function EventDetails() {
             <input 
               type="time" 
               name="eventTime" 
-              className="w-full py-3 px-4 bg-[rgba(13,13,20,0.7)] border border-border-color text-text-primary rounded font-body transition-all duration-200 outline-none focus:border-accent-secondary focus:shadow-[0_0_10px_rgba(255,0,127,0.2)]" 
+              className="w-full py-3 px-4 bg-[rgba(13,13,20,0.7)] border border-border-color text-text-primary rounded font-sans tracking-normal transition-all duration-200 outline-none focus:border-accent-secondary focus:shadow-[0_0_10px_rgba(255,0,127,0.2)]" 
               value={formData.eventTime}
               onChange={handleChange}
             />
@@ -111,7 +111,7 @@ export default function EventDetails() {
             <label className="font-tech text-accent-primary uppercase text-[0.9rem] tracking-[1px] font-bold">Additional Notes / Guidelines</label>
             <textarea 
               name="notes" 
-              className="w-full py-3 px-4 bg-[rgba(13,13,20,0.7)] border border-border-color text-text-primary rounded font-body transition-all duration-200 outline-none focus:border-accent-secondary focus:shadow-[0_0_10px_rgba(255,0,127,0.2)] resize-y min-h-[100px]" 
+              className="w-full py-3 px-4 bg-[rgba(13,13,20,0.7)] border border-border-color text-text-primary rounded font-sans tracking-normal transition-all duration-200 outline-none focus:border-accent-secondary focus:shadow-[0_0_10px_rgba(255,0,127,0.2)] resize-y min-h-[100px]" 
               value={formData.notes}
               onChange={handleChange}
             ></textarea>

@@ -332,7 +332,7 @@ export default function EvaluateClientView({
                 disabled={isLocked}
                 onChange={(e) => setFeedback(e.target.value)}
                 placeholder="Provide constructive feedback, strengths, and areas for improvement..."
-                className="w-full bg-surface-color border border-border-color p-3 text-text-primary text-xs font-tech h-24 focus:border-accent-secondary outline-none"
+                className="w-full bg-surface-color border border-border-color p-3 text-text-primary text-xs font-sans tracking-normal h-24 focus:border-accent-secondary outline-none"
               />
             </div>
           </div>

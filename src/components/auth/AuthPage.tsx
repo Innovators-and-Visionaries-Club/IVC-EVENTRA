@@ -1,30 +1,55 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { getRoleRedirectUrl } from "@/lib/auth/redirect";
-import { Lock, Mail, User, ArrowRight, ShieldCheck, AlertCircle } from "lucide-react";
+import {
+  Lock,
+  Mail,
+  User,
+  ArrowRight,
+  ShieldCheck,
+  AlertCircle,
+  KeyRound,
+  ArrowLeft,
+  CheckCircle2,
+} from "lucide-react";
 
 export default function AuthPage({ isSignUp = false }: { isSignUp?: boolean }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [otp, setOtp] = useState("");
+  const [step, setStep] = useState<"credentials" | "otp">("credentials");
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Resend OTP countdown timer
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
+  const handleCredentialsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setErrorMsg(null);
+    setSuccessMsg(null);
 
     const supabase = createClient();
 
     try {
       if (isSignUp) {
-        const { data, error } = await supabase.auth.signUp({
+        const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -37,12 +62,10 @@ export default function AuthPage({ isSignUp = false }: { isSignUp?: boolean }) {
 
         if (error) throw error;
 
-        if (data.user) {
-          const redirectUrl = await getRoleRedirectUrl(data.user.id);
-          router.push(redirectUrl);
-        } else {
-          router.push("/login?message=Check your email for confirmation link");
-        }
+        // Transition to 6-digit OTP verification view
+        setStep("otp");
+        setSuccessMsg(`A 6-digit verification code was dispatched to ${email}.`);
+        setResendCooldown(60);
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
@@ -54,6 +77,7 @@ export default function AuthPage({ isSignUp = false }: { isSignUp?: boolean }) {
         if (data.user) {
           const redirectUrl = await getRoleRedirectUrl(data.user.id);
           router.push(redirectUrl);
+          router.refresh();
         }
       }
     } catch (err: unknown) {
@@ -63,26 +87,112 @@ export default function AuthPage({ isSignUp = false }: { isSignUp?: boolean }) {
     }
   };
 
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const token = otp.trim();
+
+    if (token.length !== 6) {
+      setErrorMsg("Please enter the complete 6-digit verification code");
+      return;
+    }
+
+    setLoading(true);
+    setErrorMsg(null);
+
+    const supabase = createClient();
+
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email,
+        token,
+        type: "signup",
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
+        const redirectUrl = await getRoleRedirectUrl(data.user.id);
+        router.push(redirectUrl);
+        router.refresh();
+      } else {
+        router.push("/participants");
+        router.refresh();
+      }
+    } catch (err: unknown) {
+      setErrorMsg(
+        err instanceof Error
+          ? err.message
+          : "Invalid or expired verification code. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0 || resendLoading) return;
+    setResendLoading(true);
+    setErrorMsg(null);
+
+    const supabase = createClient();
+
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+      });
+
+      if (error) throw error;
+
+      setSuccessMsg(`A new 6-digit verification code has been dispatched to ${email}`);
+      setResendCooldown(60);
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : "Failed to resend code");
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-[80vh] flex items-center justify-center p-4">
       <div className="glass-panel max-w-md w-full p-8 border border-border-color shadow-2xl relative space-y-6">
         {/* Neon accent top bar */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-accent-secondary via-accent-primary to-accent-tertiary" />
 
-        <div className="text-center space-y-1">
-          <div className="inline-flex p-3 rounded-full bg-surface-color-light border border-border-color mb-2">
-            <ShieldCheck className="w-8 h-8 text-accent-secondary" />
+        {step === "otp" ? (
+          /* OTP Step Header */
+          <div className="text-center space-y-1">
+            <div className="inline-flex p-3 rounded-full bg-surface-color-light border border-accent-tertiary/40 mb-2">
+              <KeyRound className="w-8 h-8 text-accent-tertiary animate-pulse" />
+            </div>
+            <h1 className="font-heading text-2xl md:text-3xl text-text-primary uppercase m-0">
+              Verify Account
+            </h1>
+            <p className="font-tech text-xs text-text-secondary uppercase tracking-wider">
+              Enter the 6-digit verification code sent to your email
+            </p>
+            <p className="font-sans text-xs text-accent-tertiary font-medium">
+              {email}
+            </p>
           </div>
-          <h1 className="font-heading text-2xl md:text-3xl text-text-primary uppercase m-0">
-            {isSignUp ? "Create Account" : "Access Portal"}
-          </h1>
-          <p className="font-tech text-xs text-text-secondary uppercase tracking-wider">
-            {isSignUp
-              ? "Register for Vice Verse 1.0"
-              : "Unified entry point for Admin, Judges, Teams & Staff"}
-          </p>
-        </div>
+        ) : (
+          /* Credentials Step Header */
+          <div className="text-center space-y-1">
+            <div className="inline-flex p-3 rounded-full bg-surface-color-light border border-border-color mb-2">
+              <ShieldCheck className="w-8 h-8 text-accent-secondary" />
+            </div>
+            <h1 className="font-heading text-2xl md:text-3xl text-text-primary uppercase m-0">
+              {isSignUp ? "Create Account" : "Access Portal"}
+            </h1>
+            <p className="font-tech text-xs text-text-secondary uppercase tracking-wider">
+              {isSignUp
+                ? "Register for Vice Verse 1.0"
+                : "Unified entry point for Admin, Judges, Teams & Staff"}
+            </p>
+          </div>
+        )}
 
+        {/* Feedback banners */}
         {errorMsg && (
           <div className="p-3 bg-status-error/15 border border-status-error text-status-error font-tech text-xs flex items-center gap-2">
             <AlertCircle size={16} />
@@ -90,70 +200,140 @@ export default function AuthPage({ isSignUp = false }: { isSignUp?: boolean }) {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4 font-tech">
-          {isSignUp && (
+        {successMsg && (
+          <div className="p-3 bg-status-success/15 border border-status-success text-status-success font-tech text-xs flex items-center gap-2">
+            <CheckCircle2 size={16} />
+            <span>{successMsg}</span>
+          </div>
+        )}
+
+        {step === "otp" ? (
+          /* ================= OTP VERIFICATION FORM ================= */
+          <form onSubmit={handleVerifyOtp} className="space-y-5">
+            <div className="space-y-2">
+              <label className="block text-xs uppercase text-text-secondary font-tech font-bold tracking-wider">
+                6-Digit Security Token
+              </label>
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                required
+                maxLength={6}
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="••••••"
+                className="w-full bg-surface-color border border-border-color p-3 text-center text-text-primary text-2xl tracking-[0.4em] font-sans rounded-none focus:border-accent-tertiary focus:shadow-[0_0_15px_rgba(0,240,255,0.25)] outline-none"
+                autoFocus
+              />
+              <p className="text-[11px] text-text-secondary font-tech m-0">
+                Check your inbox or spam folder for the one-time code.
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading || otp.trim().length !== 6}
+              className="w-full py-3 bg-gradient-to-r from-accent-tertiary to-accent-secondary hover:opacity-90 disabled:opacity-50 text-black font-tech font-bold uppercase tracking-wider text-xs transition-all shadow-lg flex items-center justify-center gap-2 mt-2"
+            >
+              <span>{loading ? "Verifying Token..." : "Confirm & Enter Portal"}</span>
+              <ArrowRight size={14} />
+            </button>
+
+            <div className="flex items-center justify-between text-xs font-tech text-text-secondary pt-2 border-t border-border-color/40">
+              <button
+                type="button"
+                onClick={() => {
+                  setStep("credentials");
+                  setErrorMsg(null);
+                  setSuccessMsg(null);
+                }}
+                className="text-text-secondary hover:text-text-primary transition-colors flex items-center gap-1 uppercase font-bold"
+              >
+                <ArrowLeft size={13} />
+                <span>Change Email</span>
+              </button>
+              <button
+                type="button"
+                disabled={resendCooldown > 0 || resendLoading}
+                onClick={handleResendOtp}
+                className="text-accent-tertiary hover:underline disabled:opacity-50 disabled:no-underline font-bold uppercase tracking-wider"
+              >
+                {resendCooldown > 0
+                  ? `Resend Code (${resendCooldown}s)`
+                  : resendLoading
+                  ? "Sending..."
+                  : "Resend Code"}
+              </button>
+            </div>
+          </form>
+        ) : (
+          /* ================= CREDENTIALS FORM ================= */
+          <form onSubmit={handleCredentialsSubmit} className="space-y-4">
+            {isSignUp && (
+              <div className="space-y-1">
+                <label className="block text-xs uppercase text-text-secondary font-tech font-bold tracking-wider">
+                  Full Name
+                </label>
+                <div className="relative">
+                  <User size={15} className="absolute left-3 top-3 text-text-secondary" />
+                  <input
+                    type="text"
+                    required
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Alex Mercer"
+                    className="w-full bg-surface-color border border-border-color p-2.5 pl-9 text-text-primary text-xs font-sans tracking-normal focus:border-accent-secondary outline-none"
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="space-y-1">
-              <label className="block text-xs uppercase text-text-secondary font-bold">
-                Full Name
+              <label className="block text-xs uppercase text-text-secondary font-tech font-bold tracking-wider">
+                Email Address
               </label>
               <div className="relative">
-                <User size={15} className="absolute left-3 top-3 text-text-secondary" />
+                <Mail size={15} className="absolute left-3 top-3 text-text-secondary" />
                 <input
-                  type="text"
+                  type="email"
                   required
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Alex Mercer"
-                  className="w-full bg-surface-color border border-border-color p-2.5 pl-9 text-text-primary text-xs focus:border-accent-secondary outline-none"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="user@example.com"
+                  className="w-full bg-surface-color border border-border-color p-2.5 pl-9 text-text-primary text-xs font-sans tracking-normal focus:border-accent-secondary outline-none"
                 />
               </div>
             </div>
-          )}
 
-          <div className="space-y-1">
-            <label className="block text-xs uppercase text-text-secondary font-bold">
-              Email Address
-            </label>
-            <div className="relative">
-              <Mail size={15} className="absolute left-3 top-3 text-text-secondary" />
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="user@example.com"
-                className="w-full bg-surface-color border border-border-color p-2.5 pl-9 text-text-primary text-xs focus:border-accent-secondary outline-none"
-              />
+            <div className="space-y-1">
+              <label className="block text-xs uppercase text-text-secondary font-tech font-bold tracking-wider">
+                Password
+              </label>
+              <div className="relative">
+                <Lock size={15} className="absolute left-3 top-3 text-text-secondary" />
+                <input
+                  type="password"
+                  required
+                  minLength={6}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-surface-color border border-border-color p-2.5 pl-9 text-text-primary text-xs font-sans tracking-normal focus:border-accent-secondary outline-none"
+                />
+              </div>
             </div>
-          </div>
 
-          <div className="space-y-1">
-            <label className="block text-xs uppercase text-text-secondary font-bold">
-              Password
-            </label>
-            <div className="relative">
-              <Lock size={15} className="absolute left-3 top-3 text-text-secondary" />
-              <input
-                type="password"
-                required
-                minLength={6}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full bg-surface-color border border-border-color p-2.5 pl-9 text-text-primary text-xs focus:border-accent-secondary outline-none"
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-gradient-to-r from-accent-secondary to-accent-primary hover:opacity-90 text-black font-tech font-bold uppercase tracking-wider text-xs transition-all shadow-lg flex items-center justify-center gap-2 mt-2"
-          >
-            <span>{loading ? "Authenticating..." : isSignUp ? "Sign Up" : "Sign In"}</span>
-            <ArrowRight size={14} />
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 bg-gradient-to-r from-accent-secondary to-accent-primary hover:opacity-90 disabled:opacity-50 text-black font-tech font-bold uppercase tracking-wider text-xs transition-all shadow-lg flex items-center justify-center gap-2 mt-2"
+            >
+              <span>{loading ? "Authenticating..." : isSignUp ? "Sign Up" : "Sign In"}</span>
+              <ArrowRight size={14} />
+            </button>
+          </form>
+        )}
 
         <div className="pt-4 border-t border-border-color text-center font-tech text-xs text-text-secondary">
           {isSignUp ? (

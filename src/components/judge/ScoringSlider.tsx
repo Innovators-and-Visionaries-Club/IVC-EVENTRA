@@ -61,7 +61,7 @@ export default function ScoringSlider({
           value={value ?? 0}
           disabled={disabled}
           onChange={(e) => onChange(criterionId, Number(e.target.value), maxMarks)}
-          className="w-20 bg-surface-color border border-border-color text-text-primary font-heading text-sm text-center py-1.5 focus:border-accent-secondary outline-none"
+          className="w-20 bg-surface-color border border-border-color text-text-primary font-sans tracking-normal font-bold text-sm text-center py-1.5 focus:border-accent-secondary outline-none"
         />
       </div>
     </div>

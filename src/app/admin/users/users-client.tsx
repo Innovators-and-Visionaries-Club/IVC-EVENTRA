@@ -305,7 +305,7 @@ export default function UsersClientView({
             placeholder="Search by name, email or team..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-surface-color border border-border-color py-2 pl-9 pr-3 text-xs text-text-primary placeholder:text-text-secondary outline-none focus:border-accent-secondary transition-colors"
+            className="w-full bg-surface-color border border-border-color py-2 pl-9 pr-3 text-xs text-text-primary placeholder:text-text-secondary outline-none focus:border-accent-secondary transition-colors font-sans tracking-normal"
           />
         </div>
       </div>
@@ -475,7 +475,7 @@ export default function UsersClientView({
                     onChange={(e) =>
                       setNewUserData((p) => ({ ...p, fullName: e.target.value }))
                     }
-                    className="w-full bg-surface-color border border-border-color py-2 pl-9 pr-3 text-xs text-text-primary focus:border-accent-secondary outline-none"
+                    className="w-full bg-surface-color border border-border-color py-2 pl-9 pr-3 text-xs text-text-primary focus:border-accent-secondary outline-none font-sans tracking-normal"
                   />
                 </div>
               </div>
@@ -494,7 +494,7 @@ export default function UsersClientView({
                     onChange={(e) =>
                       setNewUserData((p) => ({ ...p, email: e.target.value }))
                     }
-                    className="w-full bg-surface-color border border-border-color py-2 pl-9 pr-3 text-xs text-text-primary focus:border-accent-secondary outline-none"
+                    className="w-full bg-surface-color border border-border-color py-2 pl-9 pr-3 text-xs text-text-primary focus:border-accent-secondary outline-none font-sans tracking-normal"
                   />
                 </div>
               </div>
@@ -514,7 +514,7 @@ export default function UsersClientView({
                     onChange={(e) =>
                       setNewUserData((p) => ({ ...p, password: e.target.value }))
                     }
-                    className="w-full bg-surface-color border border-border-color py-2 pl-9 pr-3 text-xs text-text-primary focus:border-accent-secondary outline-none font-mono"
+                    className="w-full bg-surface-color border border-border-color py-2 pl-9 pr-3 text-xs text-text-primary focus:border-accent-secondary outline-none font-sans tracking-normal"
                   />
                 </div>
               </div>

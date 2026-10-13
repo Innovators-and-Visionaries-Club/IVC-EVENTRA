@@ -76,7 +76,7 @@ export default function JudgesPortal() {
                 placeholder="Search judges..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-bg-color border border-border-color pl-10 pr-3 py-2.5 rounded-lg text-text-primary font-body w-[300px] outline-none focus:border-accent-primary transition-colors"
+                className="bg-bg-color border border-border-color pl-10 pr-3 py-2.5 rounded-lg text-text-primary font-sans tracking-normal w-[300px] outline-none focus:border-accent-primary transition-colors"
               />
             </div>
           </div>
@@ -139,15 +139,15 @@ export default function JudgesPortal() {
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div className="flex flex-col gap-2">
                 <label className="text-[0.9rem] text-accent-primary uppercase font-tech font-bold tracking-[2px]">Name</label>
-                <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="bg-[rgba(13,13,20,0.7)] border border-border-color text-white p-3 rounded outline-none focus:border-accent-primary transition-colors" />
+                <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="bg-[rgba(13,13,20,0.7)] border border-border-color text-white p-3 rounded outline-none focus:border-accent-primary transition-colors font-sans tracking-normal" />
               </div>
               <div className="flex flex-col gap-2">
                 <label className="text-[0.9rem] text-accent-primary uppercase font-tech font-bold tracking-[2px]">Email</label>
-                <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="bg-[rgba(13,13,20,0.7)] border border-border-color text-white p-3 rounded outline-none focus:border-accent-primary transition-colors" />
+                <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="bg-[rgba(13,13,20,0.7)] border border-border-color text-white p-3 rounded outline-none focus:border-accent-primary transition-colors font-sans tracking-normal" />
               </div>
               <div className="flex flex-col gap-2">
                 <label className="text-[0.9rem] text-accent-primary uppercase font-tech font-bold tracking-[2px]">Specialization</label>
-                <input required type="text" value={formData.specialization} onChange={e => setFormData({...formData, specialization: e.target.value})} className="bg-[rgba(13,13,20,0.7)] border border-border-color text-white p-3 rounded outline-none focus:border-accent-primary transition-colors" />
+                <input required type="text" value={formData.specialization} onChange={e => setFormData({...formData, specialization: e.target.value})} className="bg-[rgba(13,13,20,0.7)] border border-border-color text-white p-3 rounded outline-none focus:border-accent-primary transition-colors font-sans tracking-normal" />
               </div>
               <button type="submit" className="mt-4 inline-flex items-center justify-center gap-2 px-6 py-3 font-bold font-tech uppercase tracking-[1px] cursor-pointer transition-all duration-200 border-none text-base bg-accent-primary text-black hover:bg-accent-primary-hover hover:shadow-[0_0_15px_rgba(251,200,21,0.4)] animate-glow">{currentJudge ? 'Update Judge' : 'Add Judge'}</button>
             </form>

@@ -123,7 +123,7 @@ export default function ParticipantsPortal() {
                 placeholder="Search teams..." 
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="bg-bg-color border border-border-color pl-10 pr-3 py-2.5 rounded-lg text-text-primary font-body w-full outline-none focus:border-accent-primary transition-colors"
+                className="bg-bg-color border border-border-color pl-10 pr-3 py-2.5 rounded-lg text-text-primary font-sans tracking-normal w-full outline-none focus:border-accent-primary transition-colors"
               />
             </div>
           </div>
@@ -213,19 +213,19 @@ export default function ParticipantsPortal() {
               <div className="flex gap-4">
                 <div className="flex flex-col gap-2 flex-1">
                   <label className="text-[0.9rem] text-accent-primary uppercase font-tech font-bold tracking-[2px]">Team Name</label>
-                  <input required type="text" value={teamForm.name} onChange={e => setTeamForm({...teamForm, name: e.target.value})} className="bg-[rgba(13,13,20,0.7)] border border-border-color text-white p-3 rounded outline-none focus:border-accent-primary transition-colors" />
+                  <input required type="text" value={teamForm.name} onChange={e => setTeamForm({...teamForm, name: e.target.value})} className="bg-[rgba(13,13,20,0.7)] border border-border-color text-white p-3 rounded outline-none focus:border-accent-primary transition-colors font-sans tracking-normal" />
                 </div>
                 <div className="flex flex-col gap-2 flex-1">
                   <label className="text-[0.9rem] text-accent-primary uppercase font-tech font-bold tracking-[2px]">Theme</label>
-                  <input required type="text" value={teamForm.theme} onChange={e => setTeamForm({...teamForm, theme: e.target.value})} className="bg-[rgba(13,13,20,0.7)] border border-border-color text-white p-3 rounded outline-none focus:border-accent-primary transition-colors" />
+                  <input required type="text" value={teamForm.theme} onChange={e => setTeamForm({...teamForm, theme: e.target.value})} className="bg-[rgba(13,13,20,0.7)] border border-border-color text-white p-3 rounded outline-none focus:border-accent-primary transition-colors font-sans tracking-normal" />
                 </div>
               </div>
               
               <h3 className="text-[1rem] mt-2 mb-1 text-text-secondary font-heading tracking-[2px] uppercase">Team Members</h3>
               <div className="flex flex-col gap-3">
-                <input required placeholder="Member 1 Name" type="text" value={teamForm.member1} onChange={e => setTeamForm({...teamForm, member1: e.target.value})} className="bg-[rgba(13,13,20,0.7)] border border-border-color text-white p-2.5 rounded outline-none focus:border-accent-primary transition-colors" />
-                <input required placeholder="Member 2 Name" type="text" value={teamForm.member2} onChange={e => setTeamForm({...teamForm, member2: e.target.value})} className="bg-[rgba(13,13,20,0.7)] border border-border-color text-white p-2.5 rounded outline-none focus:border-accent-primary transition-colors" />
-                <input required placeholder="Member 3 Name" type="text" value={teamForm.member3} onChange={e => setTeamForm({...teamForm, member3: e.target.value})} className="bg-[rgba(13,13,20,0.7)] border border-border-color text-white p-2.5 rounded outline-none focus:border-accent-primary transition-colors" />
+                <input required placeholder="Member 1 Name" type="text" value={teamForm.member1} onChange={e => setTeamForm({...teamForm, member1: e.target.value})} className="bg-[rgba(13,13,20,0.7)] border border-border-color text-white p-2.5 rounded outline-none focus:border-accent-primary transition-colors font-sans tracking-normal" />
+                <input required placeholder="Member 2 Name" type="text" value={teamForm.member2} onChange={e => setTeamForm({...teamForm, member2: e.target.value})} className="bg-[rgba(13,13,20,0.7)] border border-border-color text-white p-2.5 rounded outline-none focus:border-accent-primary transition-colors font-sans tracking-normal" />
+                <input required placeholder="Member 3 Name" type="text" value={teamForm.member3} onChange={e => setTeamForm({...teamForm, member3: e.target.value})} className="bg-[rgba(13,13,20,0.7)] border border-border-color text-white p-2.5 rounded outline-none focus:border-accent-primary transition-colors font-sans tracking-normal" />
               </div>
               
               <button type="submit" className="mt-4 inline-flex items-center justify-center gap-2 px-6 py-3 font-bold font-tech uppercase tracking-[1px] cursor-pointer transition-all duration-200 border-none text-base bg-accent-primary text-black hover:bg-accent-primary-hover hover:shadow-[0_0_15px_rgba(251,200,21,0.4)] animate-glow">{currentTeam ? 'Update Team' : 'Register Team'}</button>
@@ -251,7 +251,7 @@ export default function ParticipantsPortal() {
                   rows={4}
                   value={disqualifyReason} 
                   onChange={e => setDisqualifyReason(e.target.value)} 
-                  className="bg-[rgba(13,13,20,0.7)] border border-border-color text-white p-3 rounded outline-none focus:border-status-error transition-colors resize-y"
+                  className="bg-[rgba(13,13,20,0.7)] border border-border-color text-white p-3 rounded outline-none focus:border-status-error transition-colors resize-y font-sans tracking-normal"
                 />
               </div>
               <button type="submit" className="mt-4 inline-flex items-center justify-center gap-2 px-6 py-3 font-bold font-tech uppercase tracking-[1px] cursor-pointer transition-all duration-200 border-none text-base bg-status-error text-white hover:bg-status-error hover:shadow-[0_0_15px_rgba(255,0,127,0.4)]">Confirm Disqualification</button>

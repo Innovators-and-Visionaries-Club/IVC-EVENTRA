@@ -73,7 +73,7 @@ export default function ScannerDesk({
               placeholder="Paste Team ID UUID (e.g. 00000000-0000-...)"
               value={manualId}
               onChange={(e) => onManualIdChange(e.target.value)}
-              className="w-full bg-surface-color border border-border-color p-3 text-text-primary text-xs focus:border-accent-secondary outline-none font-mono"
+              className="w-full bg-surface-color border border-border-color p-3 text-text-primary text-xs focus:border-accent-secondary outline-none font-sans tracking-normal"
             />
             <button
               type="button"

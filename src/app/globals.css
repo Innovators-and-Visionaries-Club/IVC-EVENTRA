@@ -48,11 +48,13 @@
   input,
   textarea,
   select {
-    font-family: var(--font-family-input), 'Roboto', sans-serif !important;
+    font-family: var(--font-family-input), 'Roboto', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+    letter-spacing: normal !important;
   }
   input::placeholder,
   textarea::placeholder {
-    font-family: var(--font-family-input), 'Roboto', sans-serif !important;
+    font-family: var(--font-family-input), 'Roboto', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+    letter-spacing: normal !important;
   }
 }
 
