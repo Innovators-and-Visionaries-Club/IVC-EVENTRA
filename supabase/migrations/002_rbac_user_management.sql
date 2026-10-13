@@ -142,3 +142,12 @@ TO authenticated
 USING (auth.uid() = id)
 WITH CHECK (auth.uid() = id);
 
+-- Policy 3: Admins have full management access over all profiles
+CREATE POLICY "Admins have full access to profiles"
+ON public.profiles
+FOR ALL
+TO authenticated
+USING (public.is_admin())
+WITH CHECK (public.is_admin());
+
+
