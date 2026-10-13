@@ -17,9 +17,10 @@ export async function requireOperationsRole() {
     .from("profiles")
     .select("role")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
-  if (!profile || !["admin", "staff", "organizer"].includes((profile as { role?: string }).role || "")) {
+  const role = profile?.role || (user.user_metadata?.role as string | undefined);
+  if (!role || !["admin", "staff", "organizer"].includes(role)) {
     throw new Error("Forbidden: Operational staff privileges required");
   }
 

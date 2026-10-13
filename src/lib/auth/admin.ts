@@ -14,13 +14,18 @@ export async function requireAdmin() {
     throw new Error("Unauthorized: Authentication required");
   }
 
-  const { data: profile, error: profileError } = await supabaseAdmin
+  const { data: profile } = await supabaseAdmin
     .from("profiles")
     .select("role")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
-  if (profileError || !profile || (profile as { role?: string }).role !== "admin") {
+  const isAdmin =
+    profile?.role === "admin" ||
+    (user.user_metadata?.role as string | undefined) === "admin" ||
+    (user.app_metadata?.role as string | undefined) === "admin";
+
+  if (!isAdmin) {
     throw new Error("Forbidden: Admin privileges required");
   }
 

@@ -18,9 +18,14 @@ export async function requireActiveJudgeForTeam(teamId: string) {
     .from("profiles")
     .select("role")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
-  if (!profile || (profile as { role?: string }).role !== "judge") {
+  const isJudge =
+    profile?.role === "judge" ||
+    (user.user_metadata?.role as string | undefined) === "judge" ||
+    (user.app_metadata?.role as string | undefined) === "judge";
+
+  if (!isJudge) {
     throw new Error("Forbidden: Judge role required");
   }
 
@@ -54,9 +59,14 @@ export async function requireJudge() {
     .from("profiles")
     .select("role")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
-  if (!profile || (profile as { role?: string }).role !== "judge") {
+  const isJudge =
+    profile?.role === "judge" ||
+    (user.user_metadata?.role as string | undefined) === "judge" ||
+    (user.app_metadata?.role as string | undefined) === "judge";
+
+  if (!isJudge) {
     throw new Error("Forbidden: Judge role required");
   }
 
