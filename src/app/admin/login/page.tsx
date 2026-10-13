@@ -24,6 +24,14 @@ export default function AdminPasscodePage() {
   useEffect(() => {
     // Read current trial status on initial mount
     getAdminTrialStatus().then((status) => {
+      if (!status.authenticated) {
+        router.push("/login");
+        return;
+      }
+      if (!status.isAdmin) {
+        router.push("/");
+        return;
+      }
       if (status.verified) {
         router.push("/admin");
       } else {

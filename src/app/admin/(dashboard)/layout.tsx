@@ -26,9 +26,14 @@ export default async function AdminLayout({
     .from("profiles")
     .select("role")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
-  if (!profile || (profile as { role?: string }).role !== "admin") {
+  const isAdmin =
+    profile?.role === "admin" ||
+    (user.user_metadata?.role as string | undefined) === "admin" ||
+    (user.app_metadata?.role as string | undefined) === "admin";
+
+  if (!isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#050508] p-6 text-center">
         <div className="glass-panel max-w-md w-full p-8 border border-status-error/40 shadow-2xl relative">

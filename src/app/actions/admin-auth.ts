@@ -86,12 +86,50 @@ export async function verifyAdminPasscode(passcode: string) {
 }
 
 export async function getAdminTrialStatus() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      authenticated: false,
+      isAdmin: false,
+      verified: false,
+      isLocked: false,
+      attemptsRemaining: 0,
+    };
+  }
+
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  const isAdmin =
+    profile?.role === "admin" ||
+    (user.user_metadata?.role as string | undefined) === "admin" ||
+    (user.app_metadata?.role as string | undefined) === "admin";
+
+  if (!isAdmin) {
+    return {
+      authenticated: true,
+      isAdmin: false,
+      verified: false,
+      isLocked: false,
+      attemptsRemaining: 0,
+    };
+  }
+
   const cookieStore = await cookies();
   const failedAttemptsCookie = cookieStore.get("admin_failed_attempts")?.value;
   const failed = failedAttemptsCookie ? parseInt(failedAttemptsCookie, 10) : 0;
   const verified = cookieStore.get("admin_session_verified")?.value === "true";
 
   return {
+    authenticated: true,
+    isAdmin: true,
     verified,
     isLocked: failed >= 3,
     attemptsRemaining: Math.max(0, 3 - failed),
