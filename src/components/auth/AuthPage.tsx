@@ -64,9 +64,12 @@ export default function AuthPage({ isSignUp = false }: { isSignUp?: boolean }) {
 
         // If Supabase already granted an active session (e.g. email confirmation disabled), enter directly
         if (data?.session && data?.user) {
-          const redirectUrl = await getRoleRedirectUrl(data.user.id);
+          const redirectUrl = await getRoleRedirectUrl(data.user);
           router.push(redirectUrl);
           router.refresh();
+          setTimeout(() => {
+            window.location.href = redirectUrl;
+          }, 800);
           return;
         }
 
@@ -82,16 +85,25 @@ export default function AuthPage({ isSignUp = false }: { isSignUp?: boolean }) {
 
         if (error) throw error;
 
-        if (data.user) {
-          const redirectUrl = await getRoleRedirectUrl(data.user.id);
+        if (data?.user) {
+          const redirectUrl = await getRoleRedirectUrl(data.user);
           router.push(redirectUrl);
           router.refresh();
+          setTimeout(() => {
+            window.location.href = redirectUrl;
+          }, 800);
+        } else {
+          throw new Error("No user record returned from authentication service.");
         }
       }
     } catch (err: unknown) {
       setErrorMsg(err instanceof Error ? err.message : "Authentication failed");
-    } finally {
       setLoading(false);
+    } finally {
+      // Defensive timeout to guarantee the UI is never stuck in "Authenticating..."
+      setTimeout(() => {
+        setLoading(false);
+      }, 3000);
     }
   };
 
@@ -118,13 +130,19 @@ export default function AuthPage({ isSignUp = false }: { isSignUp?: boolean }) {
 
       if (error) throw error;
 
-      if (data.user) {
-        const redirectUrl = await getRoleRedirectUrl(data.user.id);
+      if (data?.user) {
+        const redirectUrl = await getRoleRedirectUrl(data.user);
         router.push(redirectUrl);
         router.refresh();
+        setTimeout(() => {
+          window.location.href = redirectUrl;
+        }, 800);
       } else {
         router.push("/participants");
         router.refresh();
+        setTimeout(() => {
+          window.location.href = "/participants";
+        }, 800);
       }
     } catch (err: unknown) {
       setErrorMsg(
@@ -132,8 +150,11 @@ export default function AuthPage({ isSignUp = false }: { isSignUp?: boolean }) {
           ? err.message
           : "Invalid or expired verification code. Please try again."
       );
-    } finally {
       setLoading(false);
+    } finally {
+      setTimeout(() => {
+        setLoading(false);
+      }, 3000);
     }
   };
 

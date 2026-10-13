@@ -48,8 +48,8 @@ export async function middleware(request: NextRequest) {
       .eq("id", user.id)
       .single();
 
-    let target = "/login";
-    const role = profile?.role;
+    const role = profile?.role || (user.user_metadata?.role as string | undefined);
+    let target = "/participants";
     if (role === "admin") target = "/admin";
     else if (role === "judge") target = "/judge";
     else if (role === "staff" || role === "organizer") target = "/ops/scanner";
