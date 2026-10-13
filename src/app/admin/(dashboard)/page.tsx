@@ -51,37 +51,43 @@ export default async function AdminDashboardPage() {
       supabaseAdmin.from("event_results").select("is_published").eq("is_published", true).limit(1),
     ]);
 
-    if (participantsRes.status === "fulfilled" && participantsRes.value.count !== null) {
+    if (participantsRes.status === "fulfilled" && participantsRes.value && typeof participantsRes.value.count === "number") {
       participantCount = participantsRes.value.count;
     }
     
     // Leader count: team_members with role 'leader' or profiles with role 'leader'
     let tmLeaders = 0;
     let profLeaders = 0;
-    if (leadersRes.status === "fulfilled" && leadersRes.value.count !== null) {
+    if (leadersRes.status === "fulfilled" && leadersRes.value && typeof leadersRes.value.count === "number") {
       tmLeaders = leadersRes.value.count;
     }
-    if (profilesLeaderRes.status === "fulfilled" && profilesLeaderRes.value.count !== null) {
+    if (profilesLeaderRes.status === "fulfilled" && profilesLeaderRes.value && typeof profilesLeaderRes.value.count === "number") {
       profLeaders = profilesLeaderRes.value.count;
     }
     leaderCount = Math.max(tmLeaders, profLeaders);
 
-    if (judgesRes.status === "fulfilled" && judgesRes.value.count !== null) {
+    if (judgesRes.status === "fulfilled" && judgesRes.value && typeof judgesRes.value.count === "number") {
       judgeCount = judgesRes.value.count;
     }
-    if (staffRes.status === "fulfilled" && staffRes.value.count !== null) {
+    if (staffRes.status === "fulfilled" && staffRes.value && typeof staffRes.value.count === "number") {
       staffCount = staffRes.value.count;
     }
-    if (teamsRes.status === "fulfilled" && teamsRes.value.count !== null) {
+    if (teamsRes.status === "fulfilled" && teamsRes.value && typeof teamsRes.value.count === "number") {
       totalTeams = teamsRes.value.count;
     }
-    if (roundsRes.status === "fulfilled" && roundsRes.value.count !== null) {
+    if (roundsRes.status === "fulfilled" && roundsRes.value && typeof roundsRes.value.count === "number") {
       activeRounds = roundsRes.value.count;
     }
-    if (evalsRes.status === "fulfilled" && evalsRes.value.count !== null) {
+    if (evalsRes.status === "fulfilled" && evalsRes.value && typeof evalsRes.value.count === "number") {
       pendingEvaluations = evalsRes.value.count;
     }
-    if (resultsRes.status === "fulfilled" && resultsRes.value.data && resultsRes.value.data.length > 0) {
+    if (
+      resultsRes.status === "fulfilled" &&
+      resultsRes.value &&
+      "data" in resultsRes.value &&
+      Array.isArray(resultsRes.value.data) &&
+      resultsRes.value.data.length > 0
+    ) {
       isResultsPublished = true;
     }
   } catch (err) {
@@ -212,33 +218,36 @@ export default async function AdminDashboardPage() {
           Event Operations Metrics
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {eventMetricCards.map((card, idx) => (
-            <div
-              key={idx}
-              className={`glass-panel p-6 border ${card.borderColor} flex flex-col justify-between transition-all hover:scale-[1.02]`}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <span className="font-tech text-xs uppercase tracking-wider text-text-secondary font-semibold">
-                  {card.label}
-                </span>
-                <card.icon className={`${card.color} w-6 h-6`} />
+          {eventMetricCards.map((card, idx) => {
+            const IconComponent = card.icon;
+            return (
+              <div
+                key={idx}
+                className={`glass-panel p-6 border ${card.borderColor} flex flex-col justify-between transition-all hover:scale-[1.02]`}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <span className="font-tech text-xs uppercase tracking-wider text-text-secondary font-semibold">
+                    {card.label}
+                  </span>
+                  <IconComponent className={`${card.color} w-6 h-6`} />
+                </div>
+                <div className="my-2">
+                  <p className={`font-heading text-3xl md:text-4xl ${card.color} m-0`}>
+                    {card.value}
+                  </p>
+                </div>
+                <div className="pt-4 mt-2 border-t border-border-color/60 flex justify-end">
+                  <Link
+                    href={card.link}
+                    className="inline-flex items-center gap-1 font-tech text-xs uppercase font-bold text-text-secondary hover:text-text-primary transition-colors"
+                  >
+                    Inspect
+                    <ArrowRight size={14} />
+                  </Link>
+                </div>
               </div>
-              <div className="my-2">
-                <p className={`font-heading text-3xl md:text-4xl ${card.color} m-0`}>
-                  {card.value}
-                </p>
-              </div>
-              <div className="pt-4 mt-2 border-t border-border-color/60 flex justify-end">
-                <Link
-                  href={card.link}
-                  className="inline-flex items-center gap-1 font-tech text-xs uppercase font-bold text-text-secondary hover:text-text-primary transition-colors"
-                >
-                  Inspect
-                  <ArrowRight size={14} />
-                </Link>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
