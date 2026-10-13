@@ -25,7 +25,8 @@ export default async function TeamLayout({
     .eq("id", user.id)
     .single();
 
-  if (!profile || (profile as { role?: string }).role !== "participant") {
+  const userRole = (profile as { role?: string })?.role;
+  if (!profile || (userRole !== "participant" && userRole !== "leader")) {
     redirect("/login");
   }
 

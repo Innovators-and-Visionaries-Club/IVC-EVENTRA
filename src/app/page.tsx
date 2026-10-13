@@ -30,8 +30,11 @@ export default async function HomePage() {
     case 'organizer':
       redirect('/ops/scanner');
     case 'participant':
+    case 'leader':
       redirect('/team/submission');
     default:
       redirect('/login');
   }
+
+  return null;
 }
