@@ -64,6 +64,9 @@ CREATE TABLE IF NOT EXISTS public.teams (
     event_id UUID REFERENCES public.events(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     code TEXT UNIQUE,
+    track TEXT,
+    leader_name TEXT,
+    status TEXT DEFAULT 'active',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -73,6 +76,8 @@ CREATE TABLE IF NOT EXISTS public.team_members (
     team_id UUID NOT NULL REFERENCES public.teams(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     role team_member_role NOT NULL DEFAULT 'member',
+    name TEXT,
+    email TEXT,
     joined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT uq_team_member UNIQUE (team_id, user_id)
 );
@@ -87,16 +92,20 @@ CREATE TABLE IF NOT EXISTS public.evaluation_rounds (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 6. CRITERIA
-CREATE TABLE IF NOT EXISTS public.criteria (
+-- 6. EVALUATION CRITERIA (WITH criteria ALIAS VIEW)
+CREATE TABLE IF NOT EXISTS public.evaluation_criteria (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     round_id UUID NOT NULL REFERENCES public.evaluation_rounds(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
     description TEXT,
     max_marks NUMERIC NOT NULL CHECK (max_marks > 0),
     is_required BOOLEAN NOT NULL DEFAULT true,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE OR REPLACE VIEW public.criteria AS
+    SELECT * FROM public.evaluation_criteria;
 
 -- 7. JUDGE ASSIGNMENTS
 CREATE TABLE IF NOT EXISTS public.judge_assignments (
@@ -113,15 +122,18 @@ CREATE TABLE IF NOT EXISTS public.evaluations (
     round_id UUID NOT NULL REFERENCES public.evaluation_rounds(id) ON DELETE CASCADE,
     team_id UUID NOT NULL REFERENCES public.teams(id) ON DELETE CASCADE,
     judge_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    event_id UUID REFERENCES public.events(id) ON DELETE CASCADE,
     scores JSONB NOT NULL DEFAULT '[]'::jsonb,
+    scores_breakdown JSONB DEFAULT '[]'::jsonb,
     total_score NUMERIC DEFAULT 0,
     status evaluation_status NOT NULL DEFAULT 'draft',
     feedback TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT uq_round_team_judge UNIQUE (round_id, team_id, judge_id)
 );
 
--- 9. TEAM SUBMISSIONS
+-- 9. TEAM SUBMISSIONS (WITH submissions ALIAS VIEW)
 CREATE TABLE IF NOT EXISTS public.team_submissions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     team_id UUID NOT NULL REFERENCES public.teams(id) ON DELETE CASCADE,
@@ -131,9 +143,14 @@ CREATE TABLE IF NOT EXISTS public.team_submissions (
     pitch_deck_url TEXT,
     prototype_url TEXT,
     additional_material_url TEXT,
+    demo_url TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT uq_team_round_submission UNIQUE (team_id, round_id)
 );
+
+CREATE OR REPLACE VIEW public.submissions AS
+    SELECT * FROM public.team_submissions;
 
 -- 10. EVENT RESULTS
 CREATE TABLE IF NOT EXISTS public.event_results (
@@ -141,9 +158,13 @@ CREATE TABLE IF NOT EXISTS public.event_results (
     event_id UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
     team_id UUID NOT NULL REFERENCES public.teams(id) ON DELETE CASCADE,
     total_score NUMERIC DEFAULT 0,
+    average_score NUMERIC DEFAULT 0,
+    evaluations_count INT DEFAULT 0,
     rank INT,
     is_published BOOLEAN NOT NULL DEFAULT false,
     is_locked BOOLEAN NOT NULL DEFAULT false,
+    published_at TIMESTAMPTZ,
+    updated_at TIMESTAMPTZ DEFAULT now(),
     calculated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT uq_event_team UNIQUE (event_id, team_id)
 );
@@ -164,9 +185,12 @@ CREATE TABLE IF NOT EXISTS public.audit_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     admin_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
     action TEXT NOT NULL,
+    entity_type TEXT,
+    entity_id TEXT,
     target_entity TEXT,
     target_id UUID,
     reason TEXT,
+    details JSONB DEFAULT '{}'::jsonb,
     metadata JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

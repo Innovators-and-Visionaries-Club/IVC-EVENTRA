@@ -12,12 +12,24 @@ export async function triggerResultsEngine(data: ResultActionInput) {
   const validated = ResultActionSchema.parse(data);
 
   if (validated.action === "recalculate") {
-    // 1. Fetch evaluations associated with this event
-    const { data: evaluations, error: evalError } = await supabaseAdmin
+    // 1. Fetch evaluations associated with this event (via round_id or direct)
+    const { data: rounds } = await supabaseAdmin
+      .from("evaluation_rounds")
+      .select("id")
+      .eq("event_id", validated.event_id);
+
+    const roundIds = (rounds || []).map((r) => r.id);
+
+    let evalQuery = supabaseAdmin
       .from("evaluations")
       .select("team_id, total_score, status")
-      .eq("event_id", validated.event_id)
       .in("status", ["submitted", "locked"]);
+
+    if (roundIds.length > 0) {
+      evalQuery = evalQuery.in("round_id", roundIds);
+    }
+
+    const { data: evaluations, error: evalError } = await evalQuery;
 
     if (evalError) {
       throw new Error(`Failed to fetch evaluations for recalculation: ${evalError.message}`);

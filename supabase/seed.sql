@@ -9,9 +9,9 @@ VALUES ('11111111-1111-1111-1111-111111111111', 'IVC Hackathon 2026', 'Annual Fl
 ON CONFLICT (id) DO NOTHING;
 
 -- 2. Sample Teams
-INSERT INTO public.teams (id, event_id, name, code) VALUES
-('22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111', 'Alpha Coders', 'TEAM-ALPHA'),
-('33333333-3333-3333-3333-333333333333', '11111111-1111-1111-1111-111111111111', 'Beta Builders', 'TEAM-BETA')
+INSERT INTO public.teams (id, event_id, name, code, track, leader_name, status) VALUES
+('22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111', 'Alpha Coders', 'TEAM-ALPHA', 'AI & Web3', 'Team Leader Mike', 'active'),
+('33333333-3333-3333-3333-333333333333', '11111111-1111-1111-1111-111111111111', 'Beta Builders', 'TEAM-BETA', 'Open Innovation', 'Alex Chen', 'active')
 ON CONFLICT (id) DO NOTHING;
 
 -- 3. Sample Round & Criteria
@@ -19,7 +19,7 @@ INSERT INTO public.evaluation_rounds (id, event_id, title, sequence_order, statu
 ('44444444-4444-4444-4444-444444444444', '11111111-1111-1111-1111-111111111111', 'Round 1: Innovation & Pitch', 1, 'open')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO public.criteria (round_id, title, description, max_marks, is_required) VALUES
+INSERT INTO public.evaluation_criteria (round_id, title, description, max_marks, is_required) VALUES
 ('44444444-4444-4444-4444-444444444444', 'Innovation', 'Uniqueness of idea', 10, true),
 ('44444444-4444-4444-4444-444444444444', 'Technical Execution', 'Quality of codebase', 10, true)
 ON CONFLICT DO NOTHING;

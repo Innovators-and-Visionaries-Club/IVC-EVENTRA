@@ -42,21 +42,46 @@ export default function GlobalError({
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
           <button
-            onClick={() => reset()}
-            className="w-full sm:w-auto px-6 py-2.5 bg-accent-secondary text-white font-tech font-bold uppercase text-xs tracking-wider flex items-center justify-center gap-2 hover:bg-accent-secondary/80 transition-colors shadow-[0_0_15px_rgba(255,0,127,0.4)]"
+            id="reinitialize-btn"
+            type="button"
+            onClick={() => {
+              try {
+                reset();
+              } catch (err) {
+                console.warn("reset() threw an exception:", err);
+              }
+              // Force clean browser reload to break out of frozen error boundaries
+              window.location.reload();
+            }}
+            className="w-full sm:w-auto px-6 py-2.5 bg-accent-secondary text-white font-tech font-bold uppercase text-xs tracking-wider flex items-center justify-center gap-2 hover:bg-accent-secondary/80 transition-colors shadow-[0_0_15px_rgba(255,0,127,0.4)] cursor-pointer"
           >
             <RotateCcw size={14} />
             Re-Initialize System
           </button>
-          <Link
-            href="/"
-            className="w-full sm:w-auto px-6 py-2.5 bg-surface-color border border-border-color text-text-secondary font-tech font-bold uppercase text-xs tracking-wider flex items-center justify-center gap-2 hover:text-text-primary hover:border-text-secondary transition-colors"
+          <button
+            id="return-home-btn"
+            type="button"
+            onClick={() => {
+              window.location.href = "/";
+            }}
+            className="w-full sm:w-auto px-6 py-2.5 bg-surface-color border border-border-color text-text-secondary font-tech font-bold uppercase text-xs tracking-wider flex items-center justify-center gap-2 hover:text-text-primary hover:border-text-secondary transition-colors cursor-pointer"
           >
             <Home size={14} />
             Return Home
-          </Link>
+          </button>
+          <button
+            id="reauth-btn"
+            type="button"
+            onClick={() => {
+              window.location.href = "/login";
+            }}
+            className="w-full sm:w-auto px-6 py-2.5 bg-accent-primary/10 border border-accent-primary/40 text-accent-primary font-tech font-bold uppercase text-xs tracking-wider flex items-center justify-center gap-2 hover:bg-accent-primary/20 transition-colors cursor-pointer"
+          >
+            Sign In Portal
+          </button>
         </div>
       </div>
     </div>
   );
 }
+

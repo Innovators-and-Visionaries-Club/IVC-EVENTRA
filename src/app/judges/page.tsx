@@ -19,7 +19,7 @@ export default async function JudgesPage() {
     .from("profiles")
     .select("role")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
   if (!profile || !["admin", "organizer"].includes(profile.role)) {
     redirect("/login");

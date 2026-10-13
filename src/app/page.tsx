@@ -17,9 +17,9 @@ export default async function HomePage() {
     .from('profiles')
     .select('role')
     .eq('id', user.id)
-    .single();
+    .maybeSingle();
 
-  const role = profile?.role;
+  const role = profile?.role || (user.user_metadata?.role as string | undefined);
 
   switch (role) {
     case 'admin':

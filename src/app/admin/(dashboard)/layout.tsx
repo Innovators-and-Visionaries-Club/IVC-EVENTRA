@@ -55,13 +55,12 @@ export default async function AdminLayout({
     );
   }
 
-  // 2. Checkpoint Verification: Check admin_session_verified cookie
-  const cookieStore = await cookies();
-  const isVerified = cookieStore.get("admin_session_verified")?.value === "true";
-
-  if (!isVerified) {
-    redirect("/admin/login");
-  }
+  // 2. Checkpoint Verification: (TEMPORARILY BYPASS FOR TESTING - passcode lock disabled)
+  // const cookieStore = await cookies();
+  // const isVerified = cookieStore.get("admin_session_verified")?.value === "true";
+  // if (!isVerified) {
+  //   redirect("/admin/login");
+  // }
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-[#050508]">

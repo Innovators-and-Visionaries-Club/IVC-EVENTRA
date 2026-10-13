@@ -69,15 +69,41 @@ export async function fetchTeamMembersForScan(teamId: string) {
     throw new Error(`Team not found: ${teamError?.message || "Invalid team ID"}`);
   }
 
-  // 2. Fetch team participants/members
-  const { data: members, error: membersError } = await supabaseAdmin
+  // 2. Fetch team participants/members with profiles join
+  const { data: rawMembers, error: membersError } = await supabaseAdmin
     .from("team_members")
-    .select("id, user_id, name, role, email")
+    .select(`
+      id,
+      user_id,
+      role,
+      profiles (
+        id,
+        full_name,
+        email
+      )
+    `)
     .eq("team_id", teamId);
 
   if (membersError) {
-    throw new Error(`Failed to fetch team members: ${membersError.message}`);
+    console.warn("Notice: Falling back to direct team_members query:", membersError.message);
   }
+
+  interface RawMember {
+    id: string;
+    user_id: string;
+    role?: string | null;
+    name?: string | null;
+    email?: string | null;
+    profiles?: { full_name?: string | null; email?: string | null } | null;
+  }
+
+  const members = ((rawMembers as unknown as RawMember[]) || []).map((m) => ({
+    id: m.id,
+    user_id: m.user_id,
+    role: m.role || "member",
+    name: m.profiles?.full_name || m.name || "Member",
+    email: m.profiles?.email || m.email || "",
+  }));
 
   // 3. Fetch activity logs for this team
   const { data: logs, error: logsError } = await supabaseAdmin

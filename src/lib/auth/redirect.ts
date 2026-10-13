@@ -89,19 +89,20 @@ export async function getRoleRedirectUrl(
           if (hasTeam) {
             return "/team/submission";
           }
+          return "/team/submission";
         } catch {
-          // Fallback to participants portal on any error or timeout
+          // Fallback to team portal on any error or timeout
+          return "/team/submission";
         }
-        return "/participants";
       }
       default:
-        return "/participants";
+        return "/team/submission";
     }
   } catch (err) {
     console.warn("Profile role resolution error, utilizing safe fallback:", err);
     if (metadataRole === "admin") return "/admin";
     if (metadataRole === "judge") return "/judge";
     if (metadataRole === "staff" || metadataRole === "organizer") return "/ops/scanner";
-    return "/participants";
+    return "/team/submission";
   }
 }

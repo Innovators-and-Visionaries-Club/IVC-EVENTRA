@@ -23,7 +23,7 @@ export default async function JudgeLayout({
     .from("profiles")
     .select("role")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
   if (!profile || (profile as { role?: string }).role !== "judge") {
     redirect("/login");

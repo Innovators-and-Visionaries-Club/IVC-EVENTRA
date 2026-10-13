@@ -25,7 +25,7 @@ export default async function EvaluateTeamPage({
   try {
     const [teamRes, subRes, roundRes] = await Promise.all([
       supabaseAdmin.from("teams").select("*").eq("id", teamId).single(),
-      supabaseAdmin.from("submissions").select("*").eq("team_id", teamId).maybeSingle(),
+      supabaseAdmin.from("team_submissions").select("*").eq("team_id", teamId).maybeSingle(),
       supabaseAdmin
         .from("evaluation_rounds")
         .select("*")

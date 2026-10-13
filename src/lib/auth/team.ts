@@ -1,4 +1,5 @@
 import "server-only";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
@@ -10,7 +11,7 @@ export async function requireTeamLeader(teamId: string) {
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    throw new Error("Unauthorized: Authentication required");
+    redirect("/login");
   }
 
   // Verify membership and leader role in team_members
@@ -36,7 +37,7 @@ export async function requireAuthenticatedTeamUser() {
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    throw new Error("Unauthorized: Authentication required");
+    redirect("/login");
   }
 
   // Find user's team membership

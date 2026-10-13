@@ -23,7 +23,7 @@ export default async function TeamLayout({
     .from("profiles")
     .select("role")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
   const userRole = (profile as { role?: string })?.role;
   if (!profile || (userRole !== "participant" && userRole !== "leader")) {

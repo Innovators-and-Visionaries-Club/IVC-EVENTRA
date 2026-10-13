@@ -27,16 +27,20 @@ export default function NotFound() {
         </div>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
-          <Link
-            href="/"
-            className="w-full sm:w-auto px-6 py-2.5 bg-accent-primary text-black font-tech font-bold uppercase text-xs tracking-wider flex items-center justify-center gap-2 hover:bg-accent-primary-hover transition-colors"
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = "/";
+            }}
+            className="w-full sm:w-auto px-6 py-2.5 bg-accent-primary text-black font-tech font-bold uppercase text-xs tracking-wider flex items-center justify-center gap-2 hover:bg-accent-primary-hover transition-colors cursor-pointer"
           >
             <Home size={14} />
             Command Center
-          </Link>
+          </button>
           <button
+            type="button"
             onClick={() => window.history.back()}
-            className="w-full sm:w-auto px-6 py-2.5 bg-surface-color border border-border-color text-text-secondary font-tech font-bold uppercase text-xs tracking-wider flex items-center justify-center gap-2 hover:text-text-primary hover:border-text-secondary transition-colors"
+            className="w-full sm:w-auto px-6 py-2.5 bg-surface-color border border-border-color text-text-secondary font-tech font-bold uppercase text-xs tracking-wider flex items-center justify-center gap-2 hover:text-text-primary hover:border-text-secondary transition-colors cursor-pointer"
           >
             <ArrowLeft size={14} />
             Previous Sector
