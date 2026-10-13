@@ -49,7 +49,7 @@ export default function AuthPage({ isSignUp = false }: { isSignUp?: boolean }) {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -61,6 +61,14 @@ export default function AuthPage({ isSignUp = false }: { isSignUp?: boolean }) {
         });
 
         if (error) throw error;
+
+        // If Supabase already granted an active session (e.g. email confirmation disabled), enter directly
+        if (data?.session && data?.user) {
+          const redirectUrl = await getRoleRedirectUrl(data.user.id);
+          router.push(redirectUrl);
+          router.refresh();
+          return;
+        }
 
         // Transition to 6-digit OTP verification view
         setStep("otp");
