@@ -49,12 +49,33 @@ export default function ScannerClientView() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const html5QrCodeRef = useRef<{ stop: () => Promise<void>; clear: () => void } | null>(null);
+  const html5QrCodeRef = useRef<any>(null);
+
+  const stopScanner = async () => {
+    try {
+      if (html5QrCodeRef.current) {
+        if (html5QrCodeRef.current.isScanning) {
+          await html5QrCodeRef.current.stop();
+        }
+        try {
+          html5QrCodeRef.current.clear();
+        } catch {}
+        html5QrCodeRef.current = null;
+      }
+    } catch (err) {
+      console.warn("Camera stop error:", err);
+    } finally {
+      setScanning(false);
+    }
+  };
 
   const startScanner = async () => {
     try {
-      const { Html5Qrcode } = await import("html5-qrcode");
       setErrorMsg(null);
+      // Clean up any stale scanner instance first
+      await stopScanner();
+
+      const { Html5Qrcode } = await import("html5-qrcode");
       const scanner = new Html5Qrcode("qr-reader-container");
       html5QrCodeRef.current = scanner;
 
@@ -69,26 +90,44 @@ export default function ScannerClientView() {
           stopScanner();
         },
         () => {
-          // Frame error ignored
+          // Frame scan pass-through
         }
       );
       setScanning(true);
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : "Failed to initialize camera scanner");
-      setScanning(false);
-    }
-  };
-
-  const stopScanner = async () => {
-    if (html5QrCodeRef.current && scanning) {
+      console.error("Scanner start failure:", err);
       try {
-        await html5QrCodeRef.current.stop();
-        html5QrCodeRef.current = null;
-      } catch (err) {
-        console.warn("Camera stop error:", err);
+        if (html5QrCodeRef.current) {
+          html5QrCodeRef.current.clear();
+        }
+      } catch {}
+      html5QrCodeRef.current = null;
+      setScanning(false);
+
+      const rawMsg = err instanceof Error ? err.message : String(err || "");
+      if (
+        rawMsg.toLowerCase().includes("notreadableerror") ||
+        rawMsg.toLowerCase().includes("shutter") ||
+        rawMsg.toLowerCase().includes("could not start video source")
+      ) {
+        setErrorMsg(
+          "Camera blocked or unavailable: Please open your laptop/webcam physical privacy shutter or switch and try again."
+        );
+      } else if (
+        rawMsg.toLowerCase().includes("notallowederror") ||
+        rawMsg.toLowerCase().includes("permission")
+      ) {
+        setErrorMsg(
+          "Camera access denied: Please grant camera permission in your browser URL bar."
+        );
+      } else if (rawMsg.toLowerCase().includes("notfounderror")) {
+        setErrorMsg("No camera device was detected on this system.");
+      } else {
+        setErrorMsg(
+          rawMsg || "Failed to initialize camera scanner. You can use Manual ID Lookup below."
+        );
       }
     }
-    setScanning(false);
   };
 
   const handleDetectedCode = async (rawCode: string) => {

@@ -43,12 +43,15 @@ export default function ScannerDesk({
           </button>
         </div>
 
-        <div
-          id="qr-reader-container"
-          className="w-full h-64 bg-surface-color border border-dashed border-border-color flex items-center justify-center overflow-hidden rounded"
-        >
+        <div className="relative w-full h-64 bg-surface-color border border-dashed border-border-color overflow-hidden rounded flex items-center justify-center">
+          {/* html5-qrcode attaches and mutates DOM directly in this dedicated div. React must NOT have children here */}
+          <div
+            id="qr-reader-container"
+            className="w-full h-full"
+          />
+
           {!scanning && (
-            <div className="text-center text-text-secondary font-tech p-4">
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center text-text-secondary font-tech p-4 bg-surface-color/90">
               <QrCode size={40} className="mx-auto mb-2 opacity-50" />
               <p className="text-xs m-0">Click &quot;Launch Camera&quot; to scan QR badges</p>
             </div>
