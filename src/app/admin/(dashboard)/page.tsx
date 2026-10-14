@@ -140,35 +140,41 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="space-y-12 animate-fade-in font-tech max-w-7xl mx-auto pb-12">
-      {/* Live Announcement Banner */}
+      {/* Live Announcement Banner (Only shows when an actual announcement exists) */}
       <AnnouncementBanner announcements={announcements} portalName="Global Broadcast" />
 
-      {/* Header Banner */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-border-color pb-8">
-        <div className="space-y-1.5">
-          <p className="font-tech text-xs uppercase tracking-[3px] text-accent-secondary font-bold">
+      {/* Header Banner: Actions at the top row */}
+      <div className="space-y-4 border-b border-border-color pb-8">
+        {/* Top Control Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <p className="font-tech text-xs uppercase tracking-[3px] text-accent-secondary font-bold m-0">
             Vice Verse 1.0 // Command Center
           </p>
+
+          <div className="flex items-center gap-3">
+            <AdminAnnouncementModal />
+            <Link
+              href="/admin/users"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-surface-color border border-border-color hover:border-accent-secondary text-text-primary transition-all font-tech text-xs uppercase font-bold tracking-wider"
+            >
+              <UserCog size={15} />
+              <span>Manage Users</span>
+            </Link>
+            <span className="inline-flex items-center gap-2 px-3 py-2 bg-status-success/10 border border-status-success/40 text-status-success text-xs font-tech font-bold uppercase tracking-wider">
+              <span className="w-2 h-2 rounded-full bg-status-success animate-ping" />
+              System Live
+            </span>
+          </div>
+        </div>
+
+        {/* Main Title & Subtitle */}
+        <div className="pt-2">
           <h1 className="text-3xl md:text-5xl font-heading text-text-primary tracking-wider uppercase m-0">
             Admin Overview
           </h1>
-          <p className="font-tech text-xs text-text-secondary m-0 pt-1">
+          <p className="font-tech text-xs text-text-secondary m-0 pt-1.5">
             Real-time event administration, evaluation pipelines & attendee demographic telemetry.
           </p>
-        </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <AdminAnnouncementModal />
-          <Link
-            href="/admin/users"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-surface-color border border-border-color hover:border-accent-secondary text-text-primary transition-all font-tech text-xs uppercase font-bold tracking-wider"
-          >
-            <UserCog size={15} />
-            <span>Manage Users</span>
-          </Link>
-          <span className="inline-flex items-center gap-2 px-3 py-2 bg-status-success/10 border border-status-success/40 text-status-success text-xs font-tech font-bold uppercase tracking-wider">
-            <span className="w-2 h-2 rounded-full bg-status-success animate-ping" />
-            System Live
-          </span>
         </div>
       </div>
 

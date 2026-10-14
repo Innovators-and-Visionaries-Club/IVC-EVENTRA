@@ -24,20 +24,7 @@ export default function AnnouncementBanner({
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (!announcements || announcements.length === 0) {
-    return (
-      <div className="glass-panel p-3 border border-border-color/60 bg-surface-color/40 flex items-center justify-between font-tech text-xs">
-        <div className="flex items-center gap-2 text-text-secondary">
-          <Bell size={14} className="text-accent-secondary opacity-70" />
-          <span className="uppercase font-bold tracking-wider text-[11px]">
-            Announcements & Alerts:
-          </span>
-          <span className="font-mono text-text-secondary">No active alerts at this time. All systems operational.</span>
-        </div>
-        <span className="text-[10px] uppercase font-mono text-status-success font-bold flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-status-success"></span> Live
-        </span>
-      </div>
-    );
+    return null;
   }
 
   const latest = announcements[0];
