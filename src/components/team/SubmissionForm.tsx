@@ -11,9 +11,17 @@ import {
 } from "lucide-react";
 
 interface SubmissionFormProps {
+  problemStatement: string;
+  problemDescription: string;
+  proposedSolution: string;
+  solutionDescription: string;
   pptUrl: string;
   pptFileName?: string;
   fileUploading?: boolean;
+  onProblemStatementChange: (v: string) => void;
+  onProblemDescriptionChange: (v: string) => void;
+  onProposedSolutionChange: (v: string) => void;
+  onSolutionDescriptionChange: (v: string) => void;
   onFileSelect?: (file: File) => void;
   githubUrl: string;
   pitchDeckUrl: string;
@@ -31,9 +39,17 @@ interface SubmissionFormProps {
 }
 
 export default function SubmissionForm({
+  problemStatement,
+  problemDescription,
+  proposedSolution,
+  solutionDescription,
   pptUrl,
   pptFileName,
   fileUploading,
+  onProblemStatementChange,
+  onProblemDescriptionChange,
+  onProposedSolutionChange,
+  onSolutionDescriptionChange,
   onFileSelect,
   githubUrl,
   pitchDeckUrl,
@@ -51,8 +67,98 @@ export default function SubmissionForm({
 }: SubmissionFormProps) {
   return (
     <form onSubmit={onSubmit} className="glass-panel p-6 border border-border-color space-y-6 font-tech">
-      {/* Mandatory Presentation File Upload */}
-      <div className="space-y-3">
+      {/* SECTION 1: MANDATORY PROBLEM & SOLUTION SPECIFICATION */}
+      <div className="space-y-5 pb-6 border-b border-border-color">
+        <div className="border-b border-border-color/60 pb-2">
+          <h3 className="font-heading text-lg text-text-primary uppercase m-0 flex items-center gap-2">
+            <span className="w-2 h-2 bg-accent-secondary inline-block"></span>
+            1. Problem & Solution Statement
+          </h3>
+          <p className="text-xs text-text-secondary mt-1">
+            Specify the core challenge your project solves and your proposed technical solution. All 4 fields are mandatory.
+          </p>
+        </div>
+
+        {/* 1. Problem Statement */}
+        <div className="space-y-2">
+          <label className="block text-xs uppercase text-text-primary font-bold flex items-center justify-between">
+            <span>Problem Statement *</span>
+            <span className="text-[10px] text-accent-secondary uppercase font-bold">MANDATORY</span>
+          </label>
+          <input
+            type="text"
+            required
+            disabled={isLocked || !isLeader}
+            value={problemStatement}
+            onChange={(e) => onProblemStatementChange(e.target.value)}
+            placeholder="e.g. Inefficient agricultural cold-chain distribution leading to 35% crop spoilage."
+            className="w-full bg-surface-color border border-border-color p-3 text-text-primary text-sm font-sans tracking-normal focus:border-accent-secondary outline-none disabled:opacity-60"
+          />
+        </div>
+
+        {/* 2. Problem Description */}
+        <div className="space-y-2">
+          <label className="block text-xs uppercase text-text-primary font-bold flex items-center justify-between">
+            <span>Problem Description *</span>
+            <span className="text-[10px] text-accent-secondary uppercase font-bold">MANDATORY</span>
+          </label>
+          <textarea
+            required
+            rows={3}
+            disabled={isLocked || !isLeader}
+            value={problemDescription}
+            onChange={(e) => onProblemDescriptionChange(e.target.value)}
+            placeholder="Describe the root causes, current limitations, and who is affected by this challenge in detail..."
+            className="w-full bg-surface-color border border-border-color p-3 text-text-primary text-sm font-sans tracking-normal focus:border-accent-secondary outline-none disabled:opacity-60 resize-y"
+          />
+        </div>
+
+        {/* 3. Proposed Solution */}
+        <div className="space-y-2">
+          <label className="block text-xs uppercase text-text-primary font-bold flex items-center justify-between">
+            <span>Proposed Solution *</span>
+            <span className="text-[10px] text-accent-secondary uppercase font-bold">MANDATORY</span>
+          </label>
+          <input
+            type="text"
+            required
+            disabled={isLocked || !isLeader}
+            value={proposedSolution}
+            onChange={(e) => onProposedSolutionChange(e.target.value)}
+            placeholder="e.g. Decentralized IoT sensor network with predictive routing algorithm."
+            className="w-full bg-surface-color border border-border-color p-3 text-text-primary text-sm font-sans tracking-normal focus:border-accent-secondary outline-none disabled:opacity-60"
+          />
+        </div>
+
+        {/* 4. Solution Description */}
+        <div className="space-y-2">
+          <label className="block text-xs uppercase text-text-primary font-bold flex items-center justify-between">
+            <span>Solution Description *</span>
+            <span className="text-[10px] text-accent-secondary uppercase font-bold">MANDATORY</span>
+          </label>
+          <textarea
+            required
+            rows={3}
+            disabled={isLocked || !isLeader}
+            value={solutionDescription}
+            onChange={(e) => onSolutionDescriptionChange(e.target.value)}
+            placeholder="Explain how your solution works, key architecture/technologies used, and expected impact..."
+            className="w-full bg-surface-color border border-border-color p-3 text-text-primary text-sm font-sans tracking-normal focus:border-accent-secondary outline-none disabled:opacity-60 resize-y"
+          />
+        </div>
+      </div>
+
+      {/* SECTION 2: MANDATORY PRESENTATION FILE UPLOAD */}
+      <div className="space-y-3 pb-6 border-b border-border-color">
+        <div className="border-b border-border-color/60 pb-2">
+          <h3 className="font-heading text-lg text-text-primary uppercase m-0 flex items-center gap-2">
+            <span className="w-2 h-2 bg-accent-secondary inline-block"></span>
+            2. Presentation File Deliverable
+          </h3>
+          <p className="text-xs text-text-secondary mt-1">
+            Upload your official presentation slides or document (.PPT, .PPTX, .PDF, or .DOCX).
+          </p>
+        </div>
         <label className="block text-xs uppercase text-text-primary font-bold flex items-center justify-between">
           <span className="flex items-center gap-2">
             <FileText size={16} className="text-accent-secondary" />

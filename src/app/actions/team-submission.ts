@@ -38,6 +38,10 @@ export async function upsertTeamSubmission(data: TeamSubmissionInput) {
       {
         team_id: validated.team_id,
         round_id: validated.round_id,
+        problem_statement: validated.problem_statement,
+        problem_description: validated.problem_description,
+        proposed_solution: validated.proposed_solution,
+        solution_description: validated.solution_description,
         ppt_url: validated.ppt_url,
         github_url: validated.github_url || null,
         pitch_deck_url: validated.pitch_deck_url || null,

@@ -142,3 +142,15 @@ CREATE POLICY "Authenticated users can upload team deliverables"
   ON storage.objects FOR INSERT
   TO authenticated
   WITH CHECK (bucket_id = 'team-deliverables');
+
+-- Add Problem & Solution fields to team_submissions
+ALTER TABLE public.team_submissions
+  ADD COLUMN IF NOT EXISTS problem_statement TEXT,
+  ADD COLUMN IF NOT EXISTS problem_description TEXT,
+  ADD COLUMN IF NOT EXISTS proposed_solution TEXT,
+  ADD COLUMN IF NOT EXISTS solution_description TEXT;
+
+-- Refresh submissions view
+CREATE OR REPLACE VIEW public.submissions AS
+  SELECT * FROM public.team_submissions;
+

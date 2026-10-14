@@ -29,6 +29,10 @@ export interface TeamDetail {
 export interface SubmissionDetail {
   id: string;
   team_id: string;
+  problem_statement?: string | null;
+  problem_description?: string | null;
+  proposed_solution?: string | null;
+  solution_description?: string | null;
   ppt_url?: string | null;
   github_url?: string | null;
   pitch_deck_url?: string | null;
@@ -191,11 +195,44 @@ export default function EvaluateClientView({
       )}
 
       {/* Submission Assets Panel */}
-      <div className="glass-panel p-6 border border-border-color space-y-4">
+      <div className="glass-panel p-6 border border-border-color space-y-6">
         <h2 className="font-heading text-lg text-text-primary uppercase m-0 flex items-center gap-2">
           <Presentation className="text-accent-tertiary" size={20} />
-          Team Submission Assets
+          Team Submission & Deliverables
         </h2>
+
+        {/* Problem Statement & Proposed Solution */}
+        {(submission?.problem_statement || submission?.proposed_solution) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-surface-color/60 border border-border-color">
+            <div className="space-y-1">
+              <span className="font-tech text-[10px] text-accent-secondary uppercase font-bold tracking-wider">
+                Problem Statement
+              </span>
+              <p className="font-heading text-sm text-text-primary uppercase m-0">
+                {submission.problem_statement}
+              </p>
+              {submission.problem_description && (
+                <p className="font-tech text-xs text-text-secondary mt-1">
+                  {submission.problem_description}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <span className="font-tech text-[10px] text-accent-primary uppercase font-bold tracking-wider">
+                Proposed Solution
+              </span>
+              <p className="font-heading text-sm text-text-primary uppercase m-0">
+                {submission.proposed_solution}
+              </p>
+              {submission.solution_description && (
+                <p className="font-tech text-xs text-text-secondary mt-1">
+                  {submission.solution_description}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
           {/* PPT Link */}

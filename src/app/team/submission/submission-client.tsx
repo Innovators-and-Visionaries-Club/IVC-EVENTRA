@@ -19,6 +19,10 @@ export interface ActiveRoundInfo {
 
 export interface CurrentSubmissionInfo {
   id?: string;
+  problem_statement?: string | null;
+  problem_description?: string | null;
+  proposed_solution?: string | null;
+  solution_description?: string | null;
   ppt_url?: string | null;
   github_url?: string | null;
   pitch_deck_url?: string | null;
@@ -40,6 +44,10 @@ export default function TeamSubmissionClientView({
   isLocked: boolean;
   isLeader: boolean;
 }) {
+  const [problemStatement, setProblemStatement] = useState(currentSubmission?.problem_statement || "");
+  const [problemDescription, setProblemDescription] = useState(currentSubmission?.problem_description || "");
+  const [proposedSolution, setProposedSolution] = useState(currentSubmission?.proposed_solution || "");
+  const [solutionDescription, setSolutionDescription] = useState(currentSubmission?.solution_description || "");
   const [pptUrl, setPptUrl] = useState(currentSubmission?.ppt_url || "");
   const [pptFileName, setPptFileName] = useState("");
   const [fileUploading, setFileUploading] = useState(false);
@@ -65,7 +73,7 @@ export default function TeamSubmissionClientView({
       const res = await uploadPresentationFile(formData);
       setPptUrl(res.fileUrl);
       setPptFileName(res.fileName);
-      setSuccessMsg(`File "${res.fileName}" uploaded successfully! Click "Submit Deliverables" below to finalize.`);
+      setSuccessMsg(`File "${res.fileName}" uploaded successfully! Complete any remaining fields and click "Submit Deliverables" below.`);
     } catch (err: unknown) {
       setErrorMsg(err instanceof Error ? err.message : "File upload failed");
     } finally {
@@ -77,6 +85,26 @@ export default function TeamSubmissionClientView({
     e.preventDefault();
     if (!activeRound?.id) {
       setErrorMsg("No active round available for submission.");
+      return;
+    }
+
+    if (!problemStatement.trim()) {
+      setErrorMsg("Please provide your Problem Statement.");
+      return;
+    }
+
+    if (!problemDescription.trim()) {
+      setErrorMsg("Please provide your Problem Description.");
+      return;
+    }
+
+    if (!proposedSolution.trim()) {
+      setErrorMsg("Please provide your Proposed Solution.");
+      return;
+    }
+
+    if (!solutionDescription.trim()) {
+      setErrorMsg("Please provide your Solution Description.");
       return;
     }
 
@@ -93,6 +121,10 @@ export default function TeamSubmissionClientView({
       await upsertTeamSubmission({
         team_id: teamId,
         round_id: activeRound.id,
+        problem_statement: problemStatement.trim(),
+        problem_description: problemDescription.trim(),
+        proposed_solution: proposedSolution.trim(),
+        solution_description: solutionDescription.trim(),
         ppt_url: pptUrl,
         github_url: githubUrl,
         pitch_deck_url: pitchDeckUrl,
@@ -156,6 +188,14 @@ export default function TeamSubmissionClientView({
       )}
 
       <SubmissionForm
+        problemStatement={problemStatement}
+        problemDescription={problemDescription}
+        proposedSolution={proposedSolution}
+        solutionDescription={solutionDescription}
+        onProblemStatementChange={setProblemStatement}
+        onProblemDescriptionChange={setProblemDescription}
+        onProposedSolutionChange={setProposedSolution}
+        onSolutionDescriptionChange={setSolutionDescription}
         pptUrl={pptUrl}
         pptFileName={pptFileName}
         fileUploading={fileUploading}
