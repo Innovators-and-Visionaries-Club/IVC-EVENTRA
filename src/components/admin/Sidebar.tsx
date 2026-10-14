@@ -12,6 +12,7 @@ import {
   ShieldAlert,
   ArrowLeft,
 } from "lucide-react";
+import SignOutButton from "@/components/SignOutButton";
 
 export default function AdminSidebar() {
   const pathname = usePathname();
@@ -79,14 +80,15 @@ export default function AdminSidebar() {
         })}
       </div>
 
-      <div className="px-4 py-4 border-t border-border-color mt-auto">
+      <div className="px-4 py-4 border-t border-border-color mt-auto space-y-2">
         <Link
           href="/"
-          className="flex items-center gap-2 py-2.5 px-3 text-xs font-tech font-bold uppercase tracking-[1px] text-text-secondary hover:text-accent-tertiary transition-colors border border-border-color hover:border-accent-tertiary/40 rounded bg-surface-color-light/50"
+          className="flex items-center gap-2 py-2 px-3 text-xs font-tech font-bold uppercase tracking-[1px] text-text-secondary hover:text-accent-tertiary transition-colors border border-border-color hover:border-accent-tertiary/40 rounded bg-surface-color-light/50"
         >
-          <ArrowLeft size={16} />
-          <span>Exit to Public Portal</span>
+          <ArrowLeft size={15} />
+          <span>Exit to Home</span>
         </Link>
+        <SignOutButton variant="menu-item" label="Sign Out (Admin)" />
       </div>
     </aside>
   );

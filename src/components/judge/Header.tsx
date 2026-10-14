@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Gavel, ClipboardList, ArrowLeft } from "lucide-react";
+import SignOutButton from "@/components/SignOutButton";
 
 export default function JudgeHeader() {
   return (
@@ -36,6 +37,8 @@ export default function JudgeHeader() {
           <ArrowLeft size={14} />
           <span>Portal Home</span>
         </Link>
+
+        <SignOutButton variant="pill" label="Sign Out" />
       </div>
     </header>
   );

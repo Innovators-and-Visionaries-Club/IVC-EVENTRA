@@ -4,6 +4,7 @@ import React, { useContext, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Clock, MapPin, Edit3, Plus, Trash2, X } from 'lucide-react';
 import { DataContext, ScheduleItem } from '@/components/DataContext';
+import SignOutButton from '@/components/SignOutButton';
 
 export default function EventFlow() {
   const { schedule, addScheduleItem, editScheduleItem, deleteScheduleItem } = useContext(DataContext);
@@ -63,9 +64,12 @@ export default function EventFlow() {
             <h1 className="text-text-primary text-[3rem] font-heading tracking-[2px] leading-[1.1] uppercase m-0 mb-2">Event Flow</h1>
             <p className="text-text-secondary leading-[1.6] m-0">Manage and track the schedule for Vice Verse 1.0.</p>
           </div>
-          <button className="inline-flex items-center justify-center gap-2 px-6 py-3 font-bold font-tech uppercase tracking-[1px] cursor-pointer transition-all duration-200 border-none text-base bg-accent-primary text-black hover:bg-accent-primary-hover hover:shadow-[0_0_15px_rgba(251,200,21,0.4)] animate-glow" onClick={() => openModal()}>
-            <Plus size={18} /> Add Schedule Item
-          </button>
+          <div className="flex items-center gap-3">
+            <button className="inline-flex items-center justify-center gap-2 px-6 py-3 font-bold font-tech uppercase tracking-[1px] cursor-pointer transition-all duration-200 border-none text-base bg-accent-primary text-black hover:bg-accent-primary-hover hover:shadow-[0_0_15px_rgba(251,200,21,0.4)] animate-glow" onClick={() => openModal()}>
+              <Plus size={18} /> Add Schedule Item
+            </button>
+            <SignOutButton variant="button" label="Sign Out" />
+          </div>
         </header>
 
         <div className="bg-surface-color rounded-lg border border-border-color p-6 transition-all duration-300 hover:border-accent-secondary hover:shadow-[0_0_20px_rgba(255,0,127,0.15)] mt-4">

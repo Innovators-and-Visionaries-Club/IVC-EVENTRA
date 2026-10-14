@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { QrCode, ArrowLeft } from "lucide-react";
+import SignOutButton from "@/components/SignOutButton";
 
 export default function OpsHeader() {
   return (
@@ -36,6 +37,8 @@ export default function OpsHeader() {
           <ArrowLeft size={14} />
           <span>Exit</span>
         </Link>
+
+        <SignOutButton variant="pill" label="Sign Out" />
       </div>
     </header>
   );

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Users, FileUp, Trophy, QrCode, ArrowLeft } from "lucide-react";
+import SignOutButton from "@/components/SignOutButton";
 
 export default function TeamHeader() {
   return (
@@ -52,6 +53,8 @@ export default function TeamHeader() {
           <ArrowLeft size={14} />
           <span>Portal Home</span>
         </Link>
+
+        <SignOutButton variant="pill" label="Sign Out" />
       </div>
     </header>
   );

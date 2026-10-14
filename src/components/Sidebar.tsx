@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Users, Gavel, Calendar, Settings } from 'lucide-react';
 import Image from 'next/image';
+import SignOutButton from '@/components/SignOutButton';
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -62,6 +63,10 @@ export default function Sidebar() {
             </Link>
           );
         })}
+
+        <div className="pt-2 mt-2 border-t border-border-color/60">
+          <SignOutButton variant="menu-item" label="Sign Out" />
+        </div>
       </div>
 
       <div className="px-3 py-6 border-t border-border-color mt-auto">

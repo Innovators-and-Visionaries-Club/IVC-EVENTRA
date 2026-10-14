@@ -4,6 +4,7 @@ import React, { useContext, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, Plus, Edit3, Trash2, X } from 'lucide-react';
 import { DataContext, Judge } from '@/components/DataContext';
+import SignOutButton from '@/components/SignOutButton';
 
 export default function JudgesPortal() {
   const { judges, addJudge, editJudge, deleteJudge, teams } = useContext(DataContext);
@@ -62,9 +63,12 @@ export default function JudgesPortal() {
             <h1 className="text-text-primary text-[3rem] font-heading tracking-[2px] leading-[1.1] uppercase m-0 mb-2">Judges Control Portal</h1>
             <p className="text-text-secondary leading-[1.6] m-0">Manage judging panels, scorecards, and evaluations.</p>
           </div>
-          <button className="inline-flex items-center justify-center gap-2 px-6 py-3 font-bold font-tech uppercase tracking-[1px] cursor-pointer transition-all duration-200 border-none text-base bg-accent-primary text-black hover:bg-accent-primary-hover hover:shadow-[0_0_15px_rgba(251,200,21,0.4)] animate-glow" onClick={() => handleOpenModal()}>
-            <Plus size={18} /> Add Judge
-          </button>
+          <div className="flex items-center gap-3">
+            <button className="inline-flex items-center justify-center gap-2 px-6 py-3 font-bold font-tech uppercase tracking-[1px] cursor-pointer transition-all duration-200 border-none text-base bg-accent-primary text-black hover:bg-accent-primary-hover hover:shadow-[0_0_15px_rgba(251,200,21,0.4)] animate-glow" onClick={() => handleOpenModal()}>
+              <Plus size={18} /> Add Judge
+            </button>
+            <SignOutButton variant="button" label="Sign Out" />
+          </div>
         </header>
 
         <div className="bg-surface-color rounded-lg border border-border-color p-4 px-6 flex justify-between mt-4">

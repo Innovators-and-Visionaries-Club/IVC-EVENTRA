@@ -4,6 +4,7 @@ import React, { useContext, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, UserPlus, Edit3, Trash2, X, AlertTriangle } from 'lucide-react';
 import { DataContext, Team } from '@/components/DataContext';
+import SignOutButton from '@/components/SignOutButton';
 
 export default function ParticipantsPortal() {
   const { teams, judges, assignJudgeToTeam, addTeam, editTeam, deleteTeam, disqualifyTeam } = useContext(DataContext);
@@ -94,9 +95,12 @@ export default function ParticipantsPortal() {
             <h1 className="text-text-primary text-[3rem] font-heading tracking-[2px] leading-[1.1] uppercase m-0 mb-2">Participants Portal</h1>
             <p className="text-text-secondary leading-[1.6] m-0">Monitor participant teams, submissions, and status.</p>
           </div>
-          <button className="inline-flex items-center justify-center gap-2 px-6 py-3 font-bold font-tech uppercase tracking-[1px] cursor-pointer transition-all duration-200 border-none text-base bg-accent-primary text-black hover:bg-accent-primary-hover hover:shadow-[0_0_15px_rgba(251,200,21,0.4)] animate-glow" onClick={() => openTeamModal()}>
-            <UserPlus size={18} /> Register Team
-          </button>
+          <div className="flex items-center gap-3">
+            <button className="inline-flex items-center justify-center gap-2 px-6 py-3 font-bold font-tech uppercase tracking-[1px] cursor-pointer transition-all duration-200 border-none text-base bg-accent-primary text-black hover:bg-accent-primary-hover hover:shadow-[0_0_15px_rgba(251,200,21,0.4)] animate-glow" onClick={() => openTeamModal()}>
+              <UserPlus size={18} /> Register Team
+            </button>
+            <SignOutButton variant="button" label="Sign Out" />
+          </div>
         </header>
 
         <div className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-6 mt-4">
