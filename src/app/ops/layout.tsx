@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireOperationsRole } from "@/lib/auth/operations";
-import OpsHeader from "@/components/ops/Header";
+import OpsSidebar from "@/components/ops/Sidebar";
 
 export const dynamic = "force-dynamic";
 
@@ -16,16 +16,18 @@ export default async function OpsLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#050508] text-text-primary flex flex-col">
-      <OpsHeader />
+    <div className="flex flex-col md:flex-row min-h-screen bg-[#050508] text-text-primary">
+      <OpsSidebar />
       <main
-        className="flex-1 p-6 md:p-10 max-w-6xl mx-auto w-full"
+        className="flex-1 p-6 md:p-10 overflow-y-auto"
         style={{
           background:
             "radial-gradient(circle at top right, rgba(0, 240, 255, 0.05), transparent 500px), radial-gradient(circle at bottom left, rgba(251, 200, 21, 0.04), transparent 500px)",
         }}
       >
-        {children}
+        <div className="max-w-6xl mx-auto w-full">
+          {children}
+        </div>
       </main>
     </div>
   );

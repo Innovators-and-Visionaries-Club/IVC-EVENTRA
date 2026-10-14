@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import JudgeHeader from "@/components/judge/Header";
+import JudgeSidebar from "@/components/judge/Sidebar";
 
 export const dynamic = "force-dynamic";
 
@@ -30,16 +30,18 @@ export default async function JudgeLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#050508] text-text-primary flex flex-col">
-      <JudgeHeader />
+    <div className="flex flex-col md:flex-row min-h-screen bg-[#050508] text-text-primary">
+      <JudgeSidebar />
       <main
-        className="flex-1 p-6 md:p-10 max-w-7xl mx-auto w-full"
+        className="flex-1 p-6 md:p-10 overflow-y-auto"
         style={{
           background:
             "radial-gradient(circle at top right, rgba(251, 200, 21, 0.04), transparent 500px), radial-gradient(circle at bottom left, rgba(255, 0, 127, 0.04), transparent 500px)",
         }}
       >
-        {children}
+        <div className="max-w-7xl mx-auto w-full">
+          {children}
+        </div>
       </main>
     </div>
   );

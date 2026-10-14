@@ -1,0 +1,156 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  Gavel,
+  Users,
+  Award,
+  Layers,
+  ArrowLeft,
+  CheckCircle2,
+} from "lucide-react";
+import SignOutButton from "@/components/SignOutButton";
+
+export default function JudgeSidebar() {
+  const pathname = usePathname();
+
+  const navItems = [
+    {
+      href: "/judge",
+      icon: Users,
+      label: "Assigned Teams",
+      badge: "Evaluate",
+      exact: true,
+    },
+    {
+      href: "/admin/rounds",
+      icon: Layers,
+      label: "Judging Rubrics",
+      badge: "Criteria",
+    },
+    {
+      href: "/team/results",
+      icon: Award,
+      label: "Leaderboard View",
+      badge: "Standings",
+    },
+  ];
+
+  return (
+    <aside className="w-full md:w-[280px] bg-[#0c0c14] md:border-r border-b md:border-b-0 border-border-color flex flex-col justify-between py-6 md:sticky top-0 md:h-screen z-20 font-tech">
+      {/* Brand Header */}
+      <div>
+        <div className="px-6 pb-6 border-b border-border-color">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-accent-primary/15 border border-accent-primary/40 rounded flex items-center justify-center">
+              <Gavel className="text-accent-primary w-6 h-6" />
+            </div>
+            <div className="overflow-hidden">
+              <h2 className="font-heading text-lg tracking-[2px] m-0 text-text-primary uppercase truncate">
+                ViceVerse
+              </h2>
+              <p className="font-tech text-[11px] text-accent-primary m-0 font-bold tracking-[1px] uppercase">
+                Judge Committee
+              </p>
+            </div>
+          </div>
+
+          {/* Event Status Capsule */}
+          <div className="mt-4 px-3 py-2 bg-status-success/10 border border-status-success/30 rounded flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-status-success animate-pulse"></span>
+              <span className="text-[11px] text-status-success font-bold uppercase tracking-wider">
+                Ideathon — Live
+              </span>
+            </div>
+            <span className="text-[10px] text-text-secondary uppercase">2026</span>
+          </div>
+        </div>
+
+        {/* Navigation Section */}
+        <div className="py-6 px-4 flex flex-col gap-1.5">
+          <p className="font-tech text-[10px] uppercase tracking-[2px] text-text-secondary mb-2 pl-3 font-bold">
+            Navigation
+          </p>
+
+          {navItems.map((item) => {
+            const isActive = item.exact
+              ? pathname === item.href
+              : pathname === item.href || (pathname?.startsWith(item.href) && item.href !== "/judge");
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`group flex items-center justify-between py-2.5 px-3.5 font-tech font-semibold text-xs uppercase tracking-[1px] transition-all duration-200 border-l-[3px] rounded-r ${
+                  isActive
+                    ? "bg-gradient-to-r from-accent-primary/20 to-transparent text-text-primary border-accent-primary"
+                    : "text-text-secondary border-transparent hover:bg-surface-color-light/40 hover:text-text-primary hover:border-border-color"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <item.icon
+                    size={17}
+                    className={isActive ? "text-accent-primary" : "group-hover:text-text-primary"}
+                  />
+                  <span
+                    style={{
+                      textShadow: isActive
+                        ? "0 0 10px #FBC815, 0 0 20px rgba(251,200,21,0.5)"
+                        : "none",
+                    }}
+                  >
+                    {item.label}
+                  </span>
+                </div>
+                {item.badge && (
+                  <span
+                    className={`text-[9px] px-1.5 py-0.5 uppercase font-mono font-bold tracking-wider ${
+                      isActive
+                        ? "bg-accent-primary/20 text-accent-primary border border-accent-primary/50"
+                        : "bg-surface-color text-text-secondary border border-border-color/60"
+                    }`}
+                  >
+                    {item.badge}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Footer Judge Context & Sign Out */}
+      <div className="px-4 py-4 border-t border-border-color mt-auto space-y-3">
+        <div className="p-3 bg-surface-color/50 border border-border-color rounded">
+          <p className="text-[10px] uppercase text-text-secondary tracking-wider font-bold mb-0.5">
+            Judge Portal
+          </p>
+          <p className="font-heading text-xs text-text-primary uppercase truncate m-0">
+            Jury Evaluation Panel
+          </p>
+          <div className="flex items-center justify-between text-[10px] text-text-secondary mt-1 font-mono">
+            <span>Scorecard Auth</span>
+            <span className="text-status-success">VERIFIED</span>
+          </div>
+        </div>
+
+        <Link
+          href="/"
+          className="flex items-center gap-2 py-2 px-3 text-xs font-tech font-bold uppercase tracking-[1px] text-text-secondary hover:text-accent-tertiary transition-colors border border-border-color hover:border-accent-tertiary/40 rounded bg-surface-color-light/50"
+        >
+          <ArrowLeft size={14} />
+          <span>Exit to Home</span>
+        </Link>
+
+        <SignOutButton variant="menu-item" label="Sign Out (Judge)" />
+
+        <div className="pt-2 text-[10px] text-text-secondary/70 font-mono tracking-wider flex items-center justify-between">
+          <span>BUILD: ViceVerse v2.0</span>
+          <span>IVC 2026</span>
+        </div>
+      </div>
+    </aside>
+  );
+}
