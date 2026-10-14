@@ -92,6 +92,11 @@ export default function UsersClientView({
   const [usersList, setUsersList] = useState<UserProfileItem[]>(initialUsers);
   const [isPending, startTransition] = useTransition();
 
+  React.useEffect(() => {
+    const roleParam = searchParams.get("role") || "all";
+    setActiveTab(roleParam);
+  }, [searchParams]);
+
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<UserProfileItem | null>(null);

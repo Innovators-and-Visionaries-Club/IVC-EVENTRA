@@ -34,22 +34,16 @@ export default async function AdminDashboardPage() {
 
   try {
     const [
-      participantsRes,
-      leadersRes,
-      profilesLeaderRes,
-      judgesRes,
-      staffRes,
+      profilesRes,
+      teamMembersRes,
       teamsRes,
       roundsRes,
       evalsRes,
       resultsRes,
       annRes,
     ] = await Promise.allSettled([
-      supabaseAdmin.from("profiles").select("id", { count: "exact", head: true }).eq("role", "participant"),
+      supabaseAdmin.from("profiles").select("role"),
       supabaseAdmin.from("team_members").select("id", { count: "exact", head: true }).eq("role", "leader"),
-      supabaseAdmin.from("profiles").select("id", { count: "exact", head: true }).eq("role", "leader"),
-      supabaseAdmin.from("profiles").select("id", { count: "exact", head: true }).eq("role", "judge"),
-      supabaseAdmin.from("profiles").select("id", { count: "exact", head: true }).in("role", ["staff", "organizer"]),
       supabaseAdmin.from("teams").select("id", { count: "exact", head: true }),
       supabaseAdmin.from("evaluation_rounds").select("id", { count: "exact", head: true }).eq("status", "open"),
       supabaseAdmin.from("evaluations").select("id", { count: "exact", head: true }).eq("status", "draft"),
@@ -57,26 +51,14 @@ export default async function AdminDashboardPage() {
       getActiveAnnouncements("all"),
     ]);
 
-    if (participantsRes.status === "fulfilled" && participantsRes.value && typeof participantsRes.value.count === "number") {
-      participantCount = participantsRes.value.count;
-    }
-    
-    // Leader count: team_members with role 'leader' or profiles with role 'leader'
-    let tmLeaders = 0;
-    let profLeaders = 0;
-    if (leadersRes.status === "fulfilled" && leadersRes.value && typeof leadersRes.value.count === "number") {
-      tmLeaders = leadersRes.value.count;
-    }
-    if (profilesLeaderRes.status === "fulfilled" && profilesLeaderRes.value && typeof profilesLeaderRes.value.count === "number") {
-      profLeaders = profilesLeaderRes.value.count;
-    }
-    leaderCount = Math.max(tmLeaders, profLeaders);
-
-    if (judgesRes.status === "fulfilled" && judgesRes.value && typeof judgesRes.value.count === "number") {
-      judgeCount = judgesRes.value.count;
-    }
-    if (staffRes.status === "fulfilled" && staffRes.value && typeof staffRes.value.count === "number") {
-      staffCount = staffRes.value.count;
+    if (profilesRes.status === "fulfilled" && Array.isArray(profilesRes.value.data)) {
+      const profiles = profilesRes.value.data;
+      participantCount = profiles.filter((p) => p.role === "participant").length;
+      judgeCount = profiles.filter((p) => p.role === "judge").length;
+      staffCount = profiles.filter((p) => p.role === "staff" || p.role === "organizer").length;
+      const profileLeaders = profiles.filter((p) => p.role === "leader").length;
+      const tmLeaders = teamMembersRes.status === "fulfilled" && typeof teamMembersRes.value.count === "number" ? teamMembersRes.value.count : 0;
+      leaderCount = Math.max(profileLeaders, tmLeaders);
     }
     if (teamsRes.status === "fulfilled" && teamsRes.value && typeof teamsRes.value.count === "number") {
       totalTeams = teamsRes.value.count;
