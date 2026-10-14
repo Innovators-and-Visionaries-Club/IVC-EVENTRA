@@ -11,6 +11,7 @@ import {
   ScanLine,
 } from "lucide-react";
 import SignOutButton from "@/components/SignOutButton";
+import PartnerLogosBar from "@/components/PartnerLogosBar";
 
 export default function OpsSidebar() {
   const pathname = usePathname();
@@ -144,6 +145,7 @@ export default function OpsSidebar() {
           <span>Exit to Home</span>
         </Link>
 
+        <PartnerLogosBar />
         <SignOutButton variant="menu-item" label="Sign Out (Ops)" />
 
         <div className="pt-2 text-[10px] text-text-secondary/70 font-mono tracking-wider flex items-center justify-between">
