@@ -12,6 +12,9 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import StatCard from "@/components/admin/StatCard";
+import AdminAnnouncementModal from "@/components/admin/AdminAnnouncementModal";
+import AnnouncementBanner from "@/components/AnnouncementBanner";
+import { getActiveAnnouncements } from "@/app/actions/announcements";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +30,7 @@ export default async function AdminDashboardPage() {
   let activeRounds = 0;
   let pendingEvaluations = 0;
   let isResultsPublished = false;
+  let announcements: any[] = [];
 
   try {
     const [
@@ -39,6 +43,7 @@ export default async function AdminDashboardPage() {
       roundsRes,
       evalsRes,
       resultsRes,
+      annRes,
     ] = await Promise.allSettled([
       supabaseAdmin.from("profiles").select("id", { count: "exact", head: true }).eq("role", "participant"),
       supabaseAdmin.from("team_members").select("id", { count: "exact", head: true }).eq("role", "leader"),
@@ -49,6 +54,7 @@ export default async function AdminDashboardPage() {
       supabaseAdmin.from("evaluation_rounds").select("id", { count: "exact", head: true }).eq("status", "open"),
       supabaseAdmin.from("evaluations").select("id", { count: "exact", head: true }).eq("status", "draft"),
       supabaseAdmin.from("event_results").select("is_published").eq("is_published", true).limit(1),
+      getActiveAnnouncements("all"),
     ]);
 
     if (participantsRes.status === "fulfilled" && participantsRes.value && typeof participantsRes.value.count === "number") {
@@ -90,6 +96,9 @@ export default async function AdminDashboardPage() {
     ) {
       isResultsPublished = true;
     }
+    if (annRes.status === "fulfilled" && Array.isArray(annRes.value)) {
+      announcements = annRes.value;
+    }
   } catch (err) {
     console.error("Failed to load live admin metrics:", err);
   }
@@ -130,7 +139,10 @@ export default async function AdminDashboardPage() {
   ];
 
   return (
-    <div className="space-y-10 animate-fade-in">
+    <div className="space-y-8 animate-fade-in font-tech">
+      {/* Live Announcement Banner */}
+      <AnnouncementBanner announcements={announcements} portalName="Global Broadcast" />
+
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-border-color pb-6">
         <div>
@@ -142,6 +154,7 @@ export default async function AdminDashboardPage() {
           </h1>
         </div>
         <div className="flex items-center gap-3">
+          <AdminAnnouncementModal />
           <Link
             href="/admin/users"
             className="inline-flex items-center gap-2 px-4 py-2 bg-accent-secondary/15 border border-accent-secondary text-accent-secondary hover:bg-accent-secondary hover:text-black transition-all font-tech text-xs uppercase font-bold tracking-wider"

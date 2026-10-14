@@ -154,3 +154,35 @@ ALTER TABLE public.team_submissions
 CREATE OR REPLACE VIEW public.submissions AS
   SELECT * FROM public.team_submissions;
 
+-- ------------------------------------------------------------------------------
+-- Announcements System (Broadcasts from Admin/Organizers to all portals)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.announcements (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    priority TEXT NOT NULL DEFAULT 'normal', -- 'normal', 'urgent', 'important'
+    target_audience TEXT NOT NULL DEFAULT 'all', -- 'all', 'teams', 'judges', 'ops'
+    created_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY;
+
+-- Everyone can read active announcements
+DROP POLICY IF EXISTS "Anyone authenticated can view active announcements" ON public.announcements;
+CREATE POLICY "Anyone authenticated can view active announcements"
+    ON public.announcements FOR SELECT
+    TO authenticated
+    USING (is_active = true);
+
+-- Admins and staff can manage announcements
+DROP POLICY IF EXISTS "Admins and staff can manage announcements" ON public.announcements;
+CREATE POLICY "Admins and staff can manage announcements"
+    ON public.announcements FOR ALL
+    TO authenticated
+    USING (public.is_admin() OR public.has_role(auth.uid(), 'staff') OR public.has_role(auth.uid(), 'organizer'))
+    WITH CHECK (public.is_admin() OR public.has_role(auth.uid(), 'staff') OR public.has_role(auth.uid(), 'organizer'));
+

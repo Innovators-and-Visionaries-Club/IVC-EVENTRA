@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { requireAuthenticatedTeamUser } from "@/lib/auth/team";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getActiveAnnouncements } from "@/app/actions/announcements";
+import AnnouncementBanner from "@/components/AnnouncementBanner";
 
 export const dynamic = "force-dynamic";
 
@@ -31,9 +33,10 @@ export default async function TeamDashboardPage() {
   let currentSubmission: any = null;
   let activeRound: any = null;
   let publishedResult: any = null;
+  let announcements: any[] = [];
 
   try {
-    const [teamRes, membersRes, logsRes, subRes, roundRes, resultRes] =
+    const [teamRes, membersRes, logsRes, subRes, roundRes, resultRes, annRes] =
       await Promise.all([
         supabaseAdmin
           .from("teams")
@@ -65,6 +68,7 @@ export default async function TeamDashboardPage() {
           .eq("team_id", effectiveTeamId)
           .eq("is_published", true)
           .maybeSingle(),
+        getActiveAnnouncements("teams"),
       ]);
 
     if (teamRes.data) teamInfo = teamRes.data;
@@ -73,6 +77,7 @@ export default async function TeamDashboardPage() {
     if (subRes.data) currentSubmission = subRes.data;
     if (roundRes.data) activeRound = roundRes.data;
     if (resultRes.data) publishedResult = resultRes.data;
+    announcements = annRes || [];
   } catch (err) {
     console.error("Failed to load team dashboard data:", err);
   }
@@ -95,6 +100,9 @@ export default async function TeamDashboardPage() {
 
   return (
     <div className="space-y-8 animate-fade-in font-tech">
+      {/* Live Announcement Banner */}
+      <AnnouncementBanner announcements={announcements} portalName="Team Portal" />
+
       {/* Top Header */}
       <div className="border-b border-border-color pb-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

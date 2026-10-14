@@ -1,6 +1,8 @@
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import Link from "next/link";
 import { ArrowRight, Layers, FileCheck } from "lucide-react";
+import { getActiveAnnouncements } from "@/app/actions/announcements";
+import AnnouncementBanner from "@/components/AnnouncementBanner";
 
 export const dynamic = "force-dynamic";
 
@@ -30,20 +32,23 @@ export default async function JudgeDashboardPage() {
   let assignedTeams: AssignedTeam[] = [];
   let rounds: JudgeRound[] = [];
   let evaluations: JudgeEvaluation[] = [];
+  let announcements: any[] = [];
 
   try {
-    const [teamsRes, roundsRes, evalsRes] = await Promise.all([
+    const [teamsRes, roundsRes, evalsRes, annRes] = await Promise.all([
       supabaseAdmin.from("teams").select("id, name, leader_name, track, status"),
       supabaseAdmin
         .from("evaluation_rounds")
         .select("id, title, status, sequence_order")
         .order("sequence_order", { ascending: true }),
       supabaseAdmin.from("evaluations").select("round_id, team_id, status, total_score"),
+      getActiveAnnouncements("judges"),
     ]);
 
     if (teamsRes.data) assignedTeams = teamsRes.data;
     if (roundsRes.data) rounds = roundsRes.data;
     if (evalsRes.data) evaluations = evalsRes.data;
+    announcements = annRes || [];
   } catch (err) {
     console.error("Failed to fetch assigned teams:", err);
   }
@@ -67,7 +72,9 @@ export default async function JudgeDashboardPage() {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-6 animate-fade-in font-tech">
+      <AnnouncementBanner announcements={announcements} portalName="Judge Portal" />
+
       {/* Title */}
       <div className="border-b border-border-color pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>

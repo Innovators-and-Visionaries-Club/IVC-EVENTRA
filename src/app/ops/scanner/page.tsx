@@ -1,10 +1,16 @@
 import ScannerClientView from "./scanner-client";
+import { getActiveAnnouncements } from "@/app/actions/announcements";
+import AnnouncementBanner from "@/components/AnnouncementBanner";
 
 export const dynamic = "force-dynamic";
 
-export default function OpsScannerPage() {
+export default async function OpsScannerPage() {
+  const announcements = await getActiveAnnouncements("ops");
+
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-6 animate-fade-in font-tech">
+      <AnnouncementBanner announcements={announcements} portalName="Operations Desk" />
+
       <div className="border-b border-border-color pb-6">
         <p className="font-tech text-xs uppercase tracking-[3px] text-accent-tertiary font-bold mb-1">
           Logistics Desk // Live Verification
