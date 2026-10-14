@@ -63,7 +63,7 @@ export default function StatCard({
   return (
     <Link
       href={href}
-      className={`group relative glass-panel p-6 border ${styles.border} ${styles.glow} transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between overflow-hidden cursor-pointer`}
+      className={`group relative glass-panel p-6 sm:p-7 border ${styles.border} ${styles.glow} transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between overflow-hidden cursor-pointer min-h-[210px]`}
       style={{
         background: `radial-gradient(circle at top right, ${styles.accentGlow}, transparent 70%)`,
       }}
@@ -74,37 +74,37 @@ export default function StatCard({
           {label}
         </span>
         <div
-          className={`w-11 h-11 rounded-lg border flex items-center justify-center transition-transform duration-300 group-hover:scale-110 ${styles.bgBadge}`}
+          className={`w-10 h-10 rounded-lg border flex items-center justify-center transition-transform duration-300 group-hover:scale-110 ${styles.bgBadge}`}
         >
-          <Icon size={20} />
+          <Icon size={19} />
         </div>
       </div>
 
       {/* Main Stat Counter */}
-      <div className="my-4">
-        <div className="flex items-baseline gap-2">
-          <span className={`font-heading text-4xl md:text-5xl font-bold tracking-tight ${styles.textCount}`}>
+      <div className="my-3">
+        <div className="flex items-baseline gap-2.5">
+          <span className={`font-heading text-4xl sm:text-5xl font-bold tracking-tight ${styles.textCount}`}>
             {count.toLocaleString()}
           </span>
-          <span className="font-tech text-xs uppercase tracking-wider text-text-secondary">
+          <span className="font-tech text-xs uppercase tracking-wider text-text-secondary font-semibold">
             Enrolled
           </span>
         </div>
         {description && (
-          <p className="font-tech text-[11px] text-text-secondary mt-1.5 line-clamp-1">
+          <p className="font-tech text-[11px] text-text-secondary/80 mt-2 line-clamp-2 leading-relaxed">
             {description}
           </p>
         )}
       </div>
 
       {/* Card Footer with Quick Navigation Hint */}
-      <div className="pt-3 border-t border-border-color/60 flex items-center justify-between text-xs font-tech">
-        <span className="text-text-secondary group-hover:text-text-primary transition-colors uppercase font-bold tracking-wider text-[11px]">
+      <div className="pt-3.5 border-t border-border-color/60 flex items-center justify-between text-xs font-tech">
+        <span className="text-text-secondary group-hover:text-text-primary transition-colors uppercase font-bold tracking-wider text-[10px]">
           Manage {label}
         </span>
         <span className="inline-flex items-center gap-1 text-accent-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-200">
           <span className="text-[10px] uppercase font-bold">Inspect</span>
-          <ArrowUpRight size={14} />
+          <ArrowUpRight size={13} />
         </span>
       </div>
     </Link>
