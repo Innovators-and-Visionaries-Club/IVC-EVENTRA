@@ -206,7 +206,7 @@ export default function EvaluateClientView({
               </span>
               <p className="font-heading text-sm text-text-primary uppercase m-0 flex items-center gap-1.5">
                 <FileText size={16} className="text-accent-primary" />
-                Pitch Presentation
+                Presentation File
               </p>
             </div>
             <div className="pt-4 mt-2">
@@ -214,9 +214,10 @@ export default function EvaluateClientView({
                 href={submission?.ppt_url || "#"}
                 target="_blank"
                 rel="noreferrer"
+                download
                 className="inline-flex items-center gap-1.5 font-tech text-xs text-accent-primary hover:underline font-bold uppercase"
               >
-                <span>View Slides</span>
+                <span>Open / Download File</span>
                 <ExternalLink size={13} />
               </a>
             </div>

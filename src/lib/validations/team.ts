@@ -3,7 +3,7 @@ import { z } from "zod";
 export const TeamSubmissionSchema = z.object({
   team_id: z.string().uuid(),
   round_id: z.string().uuid(),
-  ppt_url: z.string().url("A valid Presentation (PPT) URL is required"),
+  ppt_url: z.string().min(1, "A presentation file (PPT/PDF/DOCX) is required"),
   github_url: z.string().url("Invalid GitHub URL").optional().or(z.literal("")),
   pitch_deck_url: z.string().url("Invalid Pitch Deck URL").optional().or(z.literal("")),
   prototype_url: z.string().url("Invalid Prototype URL").optional().or(z.literal("")),

@@ -110,3 +110,35 @@ CREATE POLICY "Admins and service can insert audit logs"
   FOR INSERT
   TO authenticated
   WITH CHECK (public.is_admin());
+
+-- Storage Bucket for team deliverable files (PPT, PPTX, PDF, DOCX)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'team-deliverables',
+  'team-deliverables',
+  true,
+  52428800,
+  ARRAY[
+    'application/pdf',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  ]
+)
+ON CONFLICT (id) DO UPDATE SET
+  public = true,
+  file_size_limit = 52428800;
+
+-- Storage public read policy
+DROP POLICY IF EXISTS "Public can view team deliverables" ON storage.objects;
+CREATE POLICY "Public can view team deliverables"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'team-deliverables');
+
+-- Storage authenticated insert policy
+DROP POLICY IF EXISTS "Authenticated users can upload team deliverables" ON storage.objects;
+CREATE POLICY "Authenticated users can upload team deliverables"
+  ON storage.objects FOR INSERT
+  TO authenticated
+  WITH CHECK (bucket_id = 'team-deliverables');
