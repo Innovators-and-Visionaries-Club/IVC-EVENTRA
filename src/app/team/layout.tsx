@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import TeamHeader from "@/components/team/Header";
+import TeamSidebar from "@/components/team/Sidebar";
 
 export const dynamic = "force-dynamic";
 
@@ -30,17 +30,41 @@ export default async function TeamLayout({
     redirect("/login");
   }
 
+  // Find team details
+  const { data: memberRow } = await supabaseAdmin
+    .from("team_members")
+    .select("role, team_id, teams (id, name, track, leader_name)")
+    .eq("user_id", user.id)
+    .limit(1)
+    .maybeSingle();
+
+  const isLeader =
+    userRole === "leader" ||
+    (memberRow as { role?: string } | null)?.role === "leader";
+
+  const teamData = (memberRow as any)?.teams;
+  const teamName = teamData?.name || "Innovation Team";
+  const track = teamData?.track || "Innovation";
+  const leaderName = teamData?.leader_name || user.email?.split("@")[0] || "Leader";
+
   return (
-    <div className="min-h-screen bg-[#050508] text-text-primary flex flex-col">
-      <TeamHeader />
+    <div className="flex flex-col md:flex-row min-h-screen bg-[#050508] text-text-primary">
+      <TeamSidebar
+        teamName={teamName}
+        leaderName={leaderName}
+        track={track}
+        isLeader={isLeader}
+      />
       <main
-        className="flex-1 p-6 md:p-10 max-w-5xl mx-auto w-full"
+        className="flex-1 p-6 md:p-10 overflow-y-auto"
         style={{
           background:
-            "radial-gradient(circle at top right, rgba(0, 240, 255, 0.04), transparent 500px), radial-gradient(circle at bottom left, rgba(255, 0, 127, 0.04), transparent 500px)",
+            "radial-gradient(circle at top right, rgba(0, 240, 255, 0.05), transparent 500px), radial-gradient(circle at bottom left, rgba(255, 0, 127, 0.05), transparent 500px)",
         }}
       >
-        {children}
+        <div className="max-w-6xl mx-auto w-full">
+          {children}
+        </div>
       </main>
     </div>
   );

@@ -69,34 +69,10 @@ export async function getRoleRedirectUrl(
         return "/ops/scanner";
       case "leader":
       case "participant": {
-        // Query team membership with a 1-second timeout
-        try {
-          const fetchMember = async () => {
-            const { data } = await supabase
-              .from("team_members")
-              .select("team_id")
-              .eq("user_id", userId)
-              .limit(1)
-              .maybeSingle();
-            return !!data;
-          };
-
-          const memberTimeout = new Promise<boolean>((resolve) =>
-            setTimeout(() => resolve(false), 1000)
-          );
-
-          const hasTeam = await Promise.race([fetchMember(), memberTimeout]);
-          if (hasTeam) {
-            return "/team/submission";
-          }
-          return "/team/submission";
-        } catch {
-          // Fallback to team portal on any error or timeout
-          return "/team/submission";
-        }
+        return "/team";
       }
       default:
-        return "/team/submission";
+        return "/team";
     }
   } catch (err) {
     console.warn("Profile role resolution error, utilizing safe fallback:", err);
