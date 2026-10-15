@@ -20,7 +20,12 @@ export async function getUsersList(params?: {
   role?: string;
   search?: string;
 }): Promise<UserProfileItem[]> {
-  await requireAdmin();
+  try {
+    await requireAdmin();
+  } catch (e) {
+    console.warn("getUsersList auth check skipped or failed:", e);
+    return [];
+  }
 
   const fetchUsers = async (): Promise<UserProfileItem[]> => {
     let query = supabaseAdmin
