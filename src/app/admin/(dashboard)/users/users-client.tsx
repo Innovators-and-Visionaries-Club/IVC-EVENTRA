@@ -233,17 +233,25 @@ export default function UsersClientView({
 
   return (
     <div className="space-y-6 animate-fade-in font-tech">
-      {/* Top Banner */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-border-color pb-6">
+      {/* Top Banner with Add User Button */}
+      <div className="border-b border-border-color pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <p className="font-tech text-xs uppercase tracking-[3px] text-accent-secondary font-bold mb-1">
-            Access Control // Identity Directory
-          </p>
-          <h1 className="text-3xl md:text-5xl font-heading text-text-primary tracking-wider uppercase m-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="w-2 h-2 rounded-full bg-accent-secondary animate-pulse" />
+            <p className="font-tech text-xs uppercase tracking-[3px] text-accent-secondary font-bold m-0">
+              Administration // Access Control
+            </p>
+          </div>
+          <h1 className="text-3xl md:text-5xl font-heading text-text-primary tracking-wider uppercase m-0 flex items-center gap-3">
+            <Users className="w-8 h-8 md:w-10 md:h-10 text-accent-secondary" />
             User Management
           </h1>
+          <p className="font-tech text-text-secondary text-sm mt-2 max-w-2xl m-0">
+            Directory of registered participants, team leaders, judges, and administrative staff. Provision new users or adjust permission tiers with full audit trail logging.
+          </p>
         </div>
-        <div className="flex items-center gap-3">
+
+        <div className="flex items-center gap-3 shrink-0">
           <button
             onClick={() => setIsAddModalOpen(true)}
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-accent-secondary to-accent-primary text-black font-tech font-bold uppercase tracking-wider text-xs transition-all hover:opacity-90 shadow-[0_0_20px_rgba(255,0,127,0.3)] cursor-pointer"
