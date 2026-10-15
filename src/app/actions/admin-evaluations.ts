@@ -59,3 +59,38 @@ export async function overrideEvaluationStatus(data: EvaluationOverrideInput) {
 
   return { evaluation: updatedEvaluation, success: true };
 }
+
+export async function getEvaluationsData() {
+  const fetchEvals = async () => {
+    const [evalsRes, roundsRes] = await Promise.all([
+      supabaseAdmin
+        .from("evaluations")
+        .select(`
+          id,
+          total_score,
+          status,
+          created_at,
+          updated_at,
+          round_id,
+          judge_id,
+          team_id
+        `)
+        .order("created_at", { ascending: false })
+        .limit(100),
+      supabaseAdmin
+        .from("evaluation_rounds")
+        .select("id, title")
+        .order("sequence_order", { ascending: true }),
+    ]);
+    return {
+      evaluations: (evalsRes.data || []) as any[],
+      rounds: (roundsRes.data || []) as any[],
+    };
+  };
+
+  const timeoutPromise = new Promise<{ evaluations: any[]; rounds: any[] }>((resolve) =>
+    setTimeout(() => resolve({ evaluations: [], rounds: [] }), 2500)
+  );
+
+  return Promise.race([fetchEvals(), timeoutPromise]);
+}
