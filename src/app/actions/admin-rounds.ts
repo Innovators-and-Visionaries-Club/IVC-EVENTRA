@@ -176,3 +176,27 @@ export async function deleteCriterion(criterionId: string) {
 
   return { success: true };
 }
+
+export async function getRoundsData() {
+  const fetchRounds = async () => {
+    const [roundsRes, criteriaRes] = await Promise.all([
+      supabaseAdmin
+        .from("evaluation_rounds")
+        .select("*")
+        .order("sequence_order", { ascending: true }),
+      supabaseAdmin
+        .from("evaluation_criteria")
+        .select("*"),
+    ]);
+    return {
+      rounds: (roundsRes.data || []) as any[],
+      criteria: (criteriaRes.data || []) as any[],
+    };
+  };
+
+  const timeoutPromise = new Promise<{ rounds: any[]; criteria: any[] }>((resolve) =>
+    setTimeout(() => resolve({ rounds: [], criteria: [] }), 2500)
+  );
+
+  return Promise.race([fetchRounds(), timeoutPromise]);
+}
