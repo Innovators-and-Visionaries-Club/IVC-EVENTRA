@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
+  UserCheck,
   Layers,
   FileCheck2,
   Award,
@@ -21,6 +22,7 @@ export default function AdminSidebar() {
   const navItems = [
     { href: "/admin", icon: LayoutDashboard, label: "Overview" },
     { href: "/admin/users", icon: Users, label: "User Management" },
+    { href: "/admin/assignments", icon: UserCheck, label: "Judge Assignments" },
     { href: "/admin/rounds", icon: Layers, label: "Rounds & Criteria" },
     { href: "/admin/evaluations", icon: FileCheck2, label: "Evaluations & Overrides" },
     { href: "/admin/results", icon: Award, label: "Results Engine" },
