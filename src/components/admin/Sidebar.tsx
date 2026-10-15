@@ -13,7 +13,6 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import SignOutButton from "@/components/SignOutButton";
-import PartnerLogosBar from "@/components/PartnerLogosBar";
 
 export default function AdminSidebar() {
   const pathname = usePathname();
@@ -89,7 +88,6 @@ export default function AdminSidebar() {
           <ArrowLeft size={15} />
           <span>Exit to Home</span>
         </Link>
-        <PartnerLogosBar />
         <SignOutButton variant="menu-item" label="Sign Out (Admin)" />
       </div>
     </aside>

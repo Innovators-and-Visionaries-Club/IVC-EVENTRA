@@ -11,7 +11,6 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import SignOutButton from "@/components/SignOutButton";
-import PartnerLogosBar from "@/components/PartnerLogosBar";
 
 export default function JudgeSidebar() {
   const pathname = usePathname();
@@ -145,7 +144,6 @@ export default function JudgeSidebar() {
           <span>Exit to Home</span>
         </Link>
 
-        <PartnerLogosBar />
         <SignOutButton variant="menu-item" label="Sign Out (Judge)" />
 
         <div className="pt-2 text-[10px] text-text-secondary/70 font-mono tracking-wider flex items-center justify-between">
