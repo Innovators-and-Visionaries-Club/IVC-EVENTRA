@@ -22,16 +22,28 @@ export default async function AdminLayout({
     redirect("/login");
   }
 
-  const { data: profile } = await supabaseAdmin
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
+  // Fast-path metadata check first
+  const metaRole =
+    (user.user_metadata?.role as string | undefined) ||
+    (user.app_metadata?.role as string | undefined);
 
-  const isAdmin =
-    profile?.role === "admin" ||
-    (user.user_metadata?.role as string | undefined) === "admin" ||
-    (user.app_metadata?.role as string | undefined) === "admin";
+  let profile: { role?: string } | null = null;
+  if (metaRole !== "admin") {
+    try {
+      const fetchProfile = async () => {
+        const { data } = await supabaseAdmin
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .maybeSingle();
+        return data;
+      };
+      const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500));
+      profile = await Promise.race([fetchProfile(), timeout]);
+    } catch {}
+  }
+
+  const isAdmin = profile?.role === "admin" || metaRole === "admin";
 
   if (!isAdmin) {
     return (

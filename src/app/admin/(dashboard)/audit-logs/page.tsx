@@ -7,13 +7,20 @@ export default async function AdminAuditLogsPage() {
   let logs: AuditLogItem[] = [];
 
   try {
-    const { data } = await supabaseAdmin
-      .from("audit_logs")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(100);
+    const fetchLogsData = async () => {
+      const { data } = await supabaseAdmin
+        .from("audit_logs")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      return (data || []) as AuditLogItem[];
+    };
 
-    if (data) logs = data as AuditLogItem[];
+    const timeoutPromise = new Promise<AuditLogItem[]>((resolve) =>
+      setTimeout(() => resolve([]), 2500)
+    );
+
+    logs = await Promise.race([fetchLogsData(), timeoutPromise]);
   } catch (err) {
     console.error("Failed to load audit logs:", err);
   }

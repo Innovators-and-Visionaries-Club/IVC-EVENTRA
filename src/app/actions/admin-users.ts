@@ -22,42 +22,45 @@ export async function getUsersList(params?: {
 }): Promise<UserProfileItem[]> {
   await requireAdmin();
 
-  let query = supabaseAdmin
-    .from("profiles")
-    .select(`
-      id,
-      email,
-      full_name,
-      role,
-      created_at
-    `)
-    .order("created_at", { ascending: false });
+  const fetchUsers = async (): Promise<UserProfileItem[]> => {
+    let query = supabaseAdmin
+      .from("profiles")
+      .select(`
+        id,
+        email,
+        full_name,
+        role,
+        created_at
+      `)
+      .order("created_at", { ascending: false })
+      .limit(200);
 
-  if (params?.role && params.role !== "all") {
-    if (params.role === "staff") {
-      query = query.in("role", ["staff", "organizer"]);
-    } else {
-      query = query.eq("role", params.role);
+    if (params?.role && params.role !== "all") {
+      if (params.role === "staff") {
+        query = query.in("role", ["staff", "organizer"]);
+      } else {
+        query = query.eq("role", params.role);
+      }
     }
-  }
 
-  if (params?.search && params.search.trim() !== "") {
-    const s = `%${params.search.trim()}%`;
-    query = query.or(`full_name.ilike.${s},email.ilike.${s}`);
-  }
+    if (params?.search && params.search.trim() !== "") {
+      const s = `%${params.search.trim()}%`;
+      query = query.or(`full_name.ilike.${s},email.ilike.${s}`);
+    }
 
-  const { data: profiles, error } = await query;
+    const { data: profiles, error } = await query;
 
-  if (error) {
-    throw new Error(`Failed to fetch profiles: ${error.message}`);
-  }
+    if (error) {
+      console.error(`Failed to fetch profiles: ${error.message}`);
+      return [];
+    }
 
-  if (!profiles || profiles.length === 0) {
-    return [];
-  }
+    if (!profiles || profiles.length === 0) {
+      return [];
+    }
 
-  // Fetch team memberships for team name display
-  const userIds = profiles.map((p) => p.id);
+    // Fetch team memberships for team name display
+    const userIds = profiles.map((p) => p.id);
   const { data: teamMembers } = await supabaseAdmin
     .from("team_members")
     .select(`
@@ -90,18 +93,28 @@ export async function getUsersList(params?: {
     });
   }
 
-  return profiles.map((p) => {
-    const tm = teamMap.get(p.id);
-    return {
-      id: p.id,
-      email: p.email,
-      full_name: p.full_name,
-      role: p.role as AllowedUserRole,
-      created_at: p.created_at,
-      team_name: tm?.team_name || null,
-      team_role: tm?.team_role || null,
-    };
-  });
+    return profiles.map((p) => {
+      const tm = teamMap.get(p.id);
+      return {
+        id: p.id,
+        email: p.email,
+        full_name: p.full_name,
+        role: p.role as AllowedUserRole,
+        created_at: p.created_at,
+        team_name: tm?.team_name || null,
+        team_role: tm?.team_role || null,
+      };
+    });
+  };
+
+  const timeoutPromise = new Promise<UserProfileItem[]>((resolve) =>
+    setTimeout(() => {
+      console.warn("getUsersList timed out after 3000ms. Returning fallback empty list.");
+      resolve([]);
+    }, 3000)
+  );
+
+  return Promise.race([fetchUsers(), timeoutPromise]);
 }
 
 export async function updateUserRole(data: {

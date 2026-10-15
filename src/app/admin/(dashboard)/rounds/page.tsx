@@ -11,18 +11,29 @@ export default async function AdminRoundsPage() {
   let criteria: AdminCriterionItem[] = [];
 
   try {
-    const [roundsRes, criteriaRes] = await Promise.all([
-      supabaseAdmin
-        .from("evaluation_rounds")
-        .select("*")
-        .order("sequence_order", { ascending: true }),
-      supabaseAdmin
-        .from("evaluation_criteria")
-        .select("*"),
-    ]);
+    const fetchRoundsData = async () => {
+      const [roundsRes, criteriaRes] = await Promise.all([
+        supabaseAdmin
+          .from("evaluation_rounds")
+          .select("*")
+          .order("sequence_order", { ascending: true }),
+        supabaseAdmin
+          .from("evaluation_criteria")
+          .select("*"),
+      ]);
+      return {
+        rounds: roundsRes.data || [],
+        criteria: criteriaRes.data || [],
+      };
+    };
 
-    if (roundsRes.data) rounds = roundsRes.data;
-    if (criteriaRes.data) criteria = criteriaRes.data;
+    const timeoutPromise = new Promise<{ rounds: AdminRoundItem[]; criteria: AdminCriterionItem[] }>(
+      (resolve) => setTimeout(() => resolve({ rounds: [], criteria: [] }), 2500)
+    );
+
+    const data = await Promise.race([fetchRoundsData(), timeoutPromise]);
+    rounds = data.rounds;
+    criteria = data.criteria;
   } catch (err) {
     console.error("Failed to load rounds/criteria data:", err);
   }

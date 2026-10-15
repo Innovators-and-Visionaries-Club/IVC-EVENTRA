@@ -10,12 +10,20 @@ export default async function AdminResultsPage() {
   const eventId = "00000000-0000-0000-0000-000000000001"; // Default flagship event UUID
 
   try {
-    const { data } = await supabaseAdmin
-      .from("event_results")
-      .select("*")
-      .order("total_score", { ascending: false });
+    const fetchResultsData = async () => {
+      const { data } = await supabaseAdmin
+        .from("event_results")
+        .select("*")
+        .order("total_score", { ascending: false });
+      return data || [];
+    };
 
-    if (data) {
+    const timeoutPromise = new Promise<ResultItem[]>((resolve) =>
+      setTimeout(() => resolve([]), 2500)
+    );
+
+    const data = await Promise.race([fetchResultsData(), timeoutPromise]);
+    if (data && data.length > 0) {
       results = data;
       isPublished = data.some((r) => r.is_published);
       isLocked = data.some((r) => r.is_locked);

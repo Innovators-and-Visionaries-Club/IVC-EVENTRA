@@ -32,28 +32,22 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  // Refresh auth session
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  // Clean root route redirection to avoid Next.js 15 dev overlay NEXT_REDIRECT artifact
+  // Only run auth routing on root path "/" to prevent blocking every page navigation
   if (request.nextUrl.pathname === "/") {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     if (!user) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .maybeSingle();
 
-    const role = profile?.role || (user.user_metadata?.role as string | undefined);
-    let target = "/team/submission";
+    const role = (user.user_metadata?.role as string | undefined) || (user.app_metadata?.role as string | undefined);
+    let target = "/team";
     if (role === "admin") target = "/admin";
     else if (role === "judge") target = "/judge";
     else if (role === "staff" || role === "organizer") target = "/ops/scanner";
-    else if (role === "participant" || role === "leader") target = "/team/submission";
+    else if (role === "participant" || role === "leader") target = "/team";
 
     return NextResponse.redirect(new URL(target, request.url));
   }
