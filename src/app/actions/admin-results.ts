@@ -117,3 +117,19 @@ export async function triggerResultsEngine(data: ResultActionInput) {
 
   return { success: true, action: validated.action, event_id: validated.event_id };
 }
+
+export async function getResultsData() {
+  const fetchResults = async () => {
+    const { data } = await supabaseAdmin
+      .from("event_results")
+      .select("*")
+      .order("total_score", { ascending: false });
+    return (data || []) as any[];
+  };
+
+  const timeoutPromise = new Promise<any[]>((resolve) =>
+    setTimeout(() => resolve([]), 2500)
+  );
+
+  return Promise.race([fetchResults(), timeoutPromise]);
+}
