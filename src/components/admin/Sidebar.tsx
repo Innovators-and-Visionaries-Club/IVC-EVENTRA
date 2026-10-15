@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -26,6 +27,12 @@ export default function AdminSidebar() {
     { href: "/admin/audit-logs", icon: ScrollText, label: "Audit Logs" },
   ];
 
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    setPendingHref(null);
+  }, [pathname]);
+
   return (
     <aside className="w-full md:w-[280px] bg-surface-color md:border-r border-b md:border-b-0 border-border-color flex flex-col justify-between py-6 md:sticky top-0 md:h-screen z-20">
       <div className="px-6 pb-6 border-b border-border-color">
@@ -50,31 +57,45 @@ export default function AdminSidebar() {
         </p>
 
         {navItems.map((item) => {
-          const isActive =
+          const isCurrentActive =
             pathname === item.href || (item.href !== "/admin" && pathname?.startsWith(item.href));
+          const isPending = pendingHref === item.href;
+          const isActive = isCurrentActive || isPending;
+
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`group flex items-center gap-3 py-3 px-4 font-tech font-semibold uppercase tracking-[1px] transition-all duration-200 border-l-[3px] ${
+              prefetch={true}
+              onClick={() => {
+                if (pathname !== item.href) {
+                  setPendingHref(item.href);
+                }
+              }}
+              className={`group flex items-center justify-between py-3 px-4 font-tech font-semibold uppercase tracking-[1px] transition-all duration-150 border-l-[3px] ${
                 isActive
                   ? "bg-gradient-to-r from-[rgba(255,0,127,0.2)] to-transparent text-text-primary border-accent-secondary"
                   : "text-text-secondary border-transparent hover:bg-[rgba(255,255,255,0.03)] hover:text-text-primary hover:border-border-color hover:pl-5"
               }`}
             >
-              <item.icon
-                size={18}
-                className={isActive ? "text-accent-secondary" : "group-hover:text-text-primary"}
-              />
-              <span
-                style={{
-                  textShadow: isActive
-                    ? "0 0 10px #FF007F, 0 0 20px rgba(255,0,127,0.5)"
-                    : "none",
-                }}
-              >
-                {item.label}
-              </span>
+              <div className="flex items-center gap-3">
+                <item.icon
+                  size={18}
+                  className={isActive ? "text-accent-secondary" : "group-hover:text-text-primary"}
+                />
+                <span
+                  style={{
+                    textShadow: isActive
+                      ? "0 0 10px #FF007F, 0 0 20px rgba(255,0,127,0.5)"
+                      : "none",
+                  }}
+                >
+                  {item.label}
+                </span>
+              </div>
+              {isPending && !isCurrentActive && (
+                <div className="w-1.5 h-1.5 rounded-full bg-accent-secondary animate-ping" />
+              )}
             </Link>
           );
         })}
