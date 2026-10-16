@@ -400,7 +400,7 @@ export default function RoundsClientView({
         <div className="flex items-center gap-3 shrink-0">
           <button
             onClick={handleOpenCreateRound}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-accent-secondary to-accent-primary text-black font-tech font-bold uppercase tracking-wider text-xs transition-all hover:opacity-90 shadow-[0_0_20px_rgba(255,0,127,0.3)] cursor-pointer"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-black font-tech font-bold uppercase tracking-wider text-xs transition-all hover:bg-white/90 shadow-[0_0_20px_rgba(255,255,255,0.25)] cursor-pointer rounded"
           >
             <Plus size={16} />
             <span>Create Round</span>
@@ -578,7 +578,7 @@ export default function RoundsClientView({
                   </div>
                   <button
                     onClick={handleOpenCreateCriterion}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-accent-secondary to-accent-primary text-black font-tech font-bold uppercase tracking-wider text-xs transition-all hover:opacity-90 shadow-[0_0_15px_rgba(255,0,127,0.3)] cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-white text-black font-tech font-bold uppercase tracking-wider text-xs transition-all hover:bg-white/90 shadow-[0_0_20px_rgba(255,255,255,0.25)] cursor-pointer rounded"
                   >
                     <Plus size={14} />
                     <span>Add Criterion</span>
