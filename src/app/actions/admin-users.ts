@@ -166,8 +166,8 @@ export async function updateUserRole(data: {
     console.warn("Could not update auth metadata:", err);
   }
 
-  // 4. Record entry in audit_logs
-  await supabaseAdmin.from("audit_logs").insert([
+  // 4. Record entry in audit_logs (non-blocking)
+  void supabaseAdmin.from("audit_logs").insert([
     {
       action: "UPDATE_USER_ROLE",
       entity_type: "profile",
@@ -235,8 +235,8 @@ export async function createUser(data: {
     throw new Error(`User created in auth, but failed to update profile: ${profileError.message}`);
   }
 
-  // 3. Record in audit_logs
-  await supabaseAdmin.from("audit_logs").insert([
+  // 3. Record in audit_logs (non-blocking)
+  void supabaseAdmin.from("audit_logs").insert([
     {
       action: "CREATE_USER",
       entity_type: "user",
@@ -281,8 +281,8 @@ export async function deleteUser(userId: string) {
     await supabaseAdmin.from("profiles").delete().eq("id", userId);
   }
 
-  // 3. Record in audit_logs
-  await supabaseAdmin.from("audit_logs").insert([
+  // 3. Record in audit_logs (non-blocking)
+  void supabaseAdmin.from("audit_logs").insert([
     {
       action: "DELETE_USER",
       entity_type: "user",

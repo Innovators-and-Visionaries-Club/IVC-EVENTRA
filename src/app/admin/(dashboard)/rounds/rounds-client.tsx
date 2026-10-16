@@ -169,54 +169,79 @@ export default function RoundsClientView({
     e.preventDefault();
     if (!roundTitle.trim()) return;
 
-    setLoading(true);
+    const titleToSave = roundTitle.trim();
+    const orderToSave = Number(roundOrder);
+    const statusToSave = roundStatus;
+
+    setIsRoundModalOpen(false);
     setNotification(null);
 
-    try {
-      if (editingRound) {
-        const updated = await updateRound(editingRound.id, {
-          title: roundTitle.trim(),
-          sequence_order: Number(roundOrder),
-          status: roundStatus,
+    if (editingRound) {
+      const originalRound = editingRound;
+      // Optimistic update
+      setRounds((prev) =>
+        prev
+          .map((r) =>
+            r.id === originalRound.id
+              ? { ...r, title: titleToSave, sequence_order: orderToSave, status: statusToSave }
+              : r
+          )
+          .sort((a, b) => a.sequence_order - b.sequence_order)
+      );
+      setNotification({
+        type: "success",
+        message: `Round "${titleToSave}" updated.`,
+      });
+
+      try {
+        await updateRound(originalRound.id, {
+          title: titleToSave,
+          sequence_order: orderToSave,
+          status: statusToSave,
         });
-        setRounds((prev) =>
-          prev
-            .map((r) => (r.id === editingRound.id ? { ...r, ...updated } : r))
-            .sort((a, b) => a.sequence_order - b.sequence_order)
-        );
+      } catch (err: unknown) {
         setNotification({
-          type: "success",
-          message: `Round "${roundTitle}" updated successfully.`,
-        });
-      } else {
-        const created = await createRound({
-          title: roundTitle.trim(),
-          sequence_order: Number(roundOrder),
-          status: roundStatus,
-        });
-        const newObj: AdminRoundItem = created || {
-          id: crypto.randomUUID(),
-          title: roundTitle.trim(),
-          sequence_order: Number(roundOrder),
-          status: roundStatus,
-        };
-        setRounds((prev) =>
-          [...prev, newObj].sort((a, b) => a.sequence_order - b.sequence_order)
-        );
-        setSelectedRoundId(newObj.id);
-        setNotification({
-          type: "success",
-          message: `Round "${roundTitle}" created successfully.`,
+          type: "error",
+          message: err instanceof Error ? err.message : "Failed to save round.",
         });
       }
-      setIsRoundModalOpen(false);
-    } catch (err: unknown) {
+    } else {
+      const tempId = crypto.randomUUID();
+      const newObj: AdminRoundItem = {
+        id: tempId,
+        title: titleToSave,
+        sequence_order: orderToSave,
+        status: statusToSave,
+      };
+
+      // Optimistic update
+      setRounds((prev) =>
+        [...prev, newObj].sort((a, b) => a.sequence_order - b.sequence_order)
+      );
+      setSelectedRoundId(tempId);
       setNotification({
-        type: "error",
-        message: err instanceof Error ? err.message : "Failed to save round.",
+        type: "success",
+        message: `Round "${titleToSave}" created.`,
       });
-    } finally {
-      setLoading(false);
+
+      try {
+        const created = await createRound({
+          title: titleToSave,
+          sequence_order: orderToSave,
+          status: statusToSave,
+        });
+        if (created?.id) {
+          setRounds((prev) =>
+            prev.map((r) => (r.id === tempId ? { ...r, id: created.id } : r))
+          );
+          setSelectedRoundId(created.id);
+        }
+      } catch (err: unknown) {
+        setNotification({
+          type: "error",
+          message: err instanceof Error ? err.message : "Failed to create round.",
+        });
+      }
     }
   };
 
@@ -224,29 +249,28 @@ export default function RoundsClientView({
     if (!roundToDelete) return;
     const target = roundToDelete;
     setRoundToDelete(null);
-    setLoading(true);
+
+    // Optimistic delete
+    setRounds((prev) => prev.filter((r) => r.id !== target.id));
+    setCriteria((prev) => prev.filter((c) => c.round_id !== target.id));
+
+    if (selectedRoundId === target.id) {
+      const remaining = rounds.filter((r) => r.id !== target.id);
+      setSelectedRoundId(remaining[0]?.id || "");
+    }
+
+    setNotification({
+      type: "success",
+      message: `Round "${target.title}" and its criteria deleted.`,
+    });
 
     try {
       await deleteRound(target.id);
-      setRounds((prev) => prev.filter((r) => r.id !== target.id));
-      setCriteria((prev) => prev.filter((c) => c.round_id !== target.id));
-
-      if (selectedRoundId === target.id) {
-        const remaining = rounds.filter((r) => r.id !== target.id);
-        setSelectedRoundId(remaining[0]?.id || "");
-      }
-
-      setNotification({
-        type: "success",
-        message: `Round "${target.title}" and its criteria were deleted.`,
-      });
     } catch (err: unknown) {
       setNotification({
         type: "error",
         message: err instanceof Error ? err.message : "Failed to delete round.",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -293,64 +317,85 @@ export default function RoundsClientView({
     e.preventDefault();
     if (!selectedRoundId || !criterionTitle.trim()) return;
 
-    setLoading(true);
+    const titleToSave = criterionTitle.trim();
+    const descToSave = criterionDesc.trim() || undefined;
+    const maxMarksToSave = Number(criterionMaxMarks);
+    const requiredToSave = criterionRequired;
+
+    setIsCriterionModalOpen(false);
     setNotification(null);
 
-    try {
-      if (editingCriterion) {
-        await updateCriterion(editingCriterion.id, {
-          title: criterionTitle.trim(),
-          description: criterionDesc.trim() || undefined,
-          max_marks: Number(criterionMaxMarks),
-          is_required: criterionRequired,
+    if (editingCriterion) {
+      const origId = editingCriterion.id;
+      // Optimistic update
+      setCriteria((prev) =>
+        prev.map((c) =>
+          c.id === origId
+            ? {
+                ...c,
+                title: titleToSave,
+                description: descToSave || null,
+                max_marks: maxMarksToSave,
+                is_required: requiredToSave,
+              }
+            : c
+        )
+      );
+      setNotification({
+        type: "success",
+        message: `Criterion "${titleToSave}" updated.`,
+      });
+
+      try {
+        await updateCriterion(origId, {
+          title: titleToSave,
+          description: descToSave,
+          max_marks: maxMarksToSave,
+          is_required: requiredToSave,
         });
-        setCriteria((prev) =>
-          prev.map((c) =>
-            c.id === editingCriterion.id
-              ? {
-                  ...c,
-                  title: criterionTitle.trim(),
-                  description: criterionDesc.trim() || null,
-                  max_marks: Number(criterionMaxMarks),
-                  is_required: criterionRequired,
-                }
-              : c
-          )
-        );
+      } catch (err: unknown) {
         setNotification({
-          type: "success",
-          message: `Criterion "${criterionTitle}" updated.`,
-        });
-      } else {
-        const created = await createCriterion({
-          round_id: selectedRoundId,
-          title: criterionTitle.trim(),
-          description: criterionDesc.trim() || undefined,
-          max_marks: Number(criterionMaxMarks),
-          is_required: criterionRequired,
-        });
-        const newObj: AdminCriterionItem = created || {
-          id: crypto.randomUUID(),
-          round_id: selectedRoundId,
-          title: criterionTitle.trim(),
-          description: criterionDesc.trim() || null,
-          max_marks: Number(criterionMaxMarks),
-          is_required: criterionRequired,
-        };
-        setCriteria((prev) => [...prev, newObj]);
-        setNotification({
-          type: "success",
-          message: `Criterion "${criterionTitle}" added to ${activeRound?.title}.`,
+          type: "error",
+          message: err instanceof Error ? err.message : "Failed to save criterion.",
         });
       }
-      setIsCriterionModalOpen(false);
-    } catch (err: unknown) {
+    } else {
+      const tempId = crypto.randomUUID();
+      const newObj: AdminCriterionItem = {
+        id: tempId,
+        round_id: selectedRoundId,
+        title: titleToSave,
+        description: descToSave || null,
+        max_marks: maxMarksToSave,
+        is_required: requiredToSave,
+      };
+
+      // Optimistic add
+      setCriteria((prev) => [...prev, newObj]);
       setNotification({
-        type: "error",
-        message: err instanceof Error ? err.message : "Failed to save criterion.",
+        type: "success",
+        message: `Criterion "${titleToSave}" added.`,
       });
-    } finally {
-      setLoading(false);
+
+      try {
+        const created = await createCriterion({
+          round_id: selectedRoundId,
+          title: titleToSave,
+          description: descToSave,
+          max_marks: maxMarksToSave,
+          is_required: requiredToSave,
+        });
+        if (created?.id) {
+          setCriteria((prev) =>
+            prev.map((c) => (c.id === tempId ? { ...c, id: created.id } : c))
+          );
+        }
+      } catch (err: unknown) {
+        setNotification({
+          type: "error",
+          message: err instanceof Error ? err.message : "Failed to save criterion.",
+        });
+      }
     }
   };
 
@@ -358,22 +403,21 @@ export default function RoundsClientView({
     if (!criterionToDelete) return;
     const target = criterionToDelete;
     setCriterionToDelete(null);
-    setLoading(true);
+
+    // Optimistic delete
+    setCriteria((prev) => prev.filter((c) => c.id !== target.id));
+    setNotification({
+      type: "success",
+      message: `Criterion "${target.title}" deleted.`,
+    });
 
     try {
       await deleteCriterion(target.id);
-      setCriteria((prev) => prev.filter((c) => c.id !== target.id));
-      setNotification({
-        type: "success",
-        message: `Criterion "${target.title}" deleted successfully.`,
-      });
     } catch (err: unknown) {
       setNotification({
         type: "error",
         message: err instanceof Error ? err.message : "Failed to delete criterion.",
       });
-    } finally {
-      setLoading(false);
     }
   };
 

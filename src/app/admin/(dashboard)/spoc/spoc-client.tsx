@@ -153,37 +153,61 @@ export default function SpocClientView({
     e.preventDefault();
     if (!formData.name.trim()) return;
 
-    setFormLoading(true);
+    const dataToSave = { ...formData };
+    setIsModalOpen(false);
     setNotification(null);
 
-    try {
-      if (editingSpoc) {
-        const updated = await updateSpoc({
-          id: editingSpoc.id,
-          ...formData,
+    if (editingSpoc) {
+      const origId = editingSpoc.id;
+      // Optimistic update
+      setSpocs((prev) =>
+        prev.map((s) => (s.id === origId ? { ...s, ...dataToSave } : s))
+      );
+      setNotification({ type: "success", message: `SPOC ${dataToSave.name} updated.` });
+
+      try {
+        await updateSpoc({
+          id: origId,
+          ...dataToSave,
         });
-        setSpocs((prev) =>
-          prev.map((s) => (s.id === editingSpoc.id ? { ...s, ...updated } : s))
-        );
-        setNotification({ type: "success", message: `SPOC ${formData.name} updated.` });
-      } else {
-        const created = await createSpoc(formData);
-        const newObj: SpocItem = {
-          ...created,
-          assigned_team_ids: [],
-        };
-        setSpocs((prev) => [...prev, newObj]);
-        setSelectedSpocId(created.id);
-        setNotification({ type: "success", message: `SPOC ${formData.name} created.` });
+      } catch (err: unknown) {
+        setNotification({
+          type: "error",
+          message: err instanceof Error ? err.message : "Failed to save SPOC.",
+        });
       }
-      setIsModalOpen(false);
-    } catch (err: unknown) {
-      setNotification({
-        type: "error",
-        message: err instanceof Error ? err.message : "Failed to save SPOC.",
-      });
-    } finally {
-      setFormLoading(false);
+    } else {
+      const tempId = crypto.randomUUID();
+      const newObj: SpocItem = {
+        id: tempId,
+        name: dataToSave.name,
+        email: dataToSave.email || null,
+        phone: dataToSave.phone || null,
+        department: dataToSave.department || null,
+        notes: dataToSave.notes || null,
+        created_at: new Date().toISOString(),
+        assigned_team_ids: [],
+      };
+
+      // Optimistic create
+      setSpocs((prev) => [...prev, newObj]);
+      setSelectedSpocId(tempId);
+      setNotification({ type: "success", message: `SPOC ${dataToSave.name} created.` });
+
+      try {
+        const created = await createSpoc(dataToSave);
+        if (created?.id) {
+          setSpocs((prev) =>
+            prev.map((s) => (s.id === tempId ? { ...s, id: created.id } : s))
+          );
+          setSelectedSpocId(created.id);
+        }
+      } catch (err: unknown) {
+        setNotification({
+          type: "error",
+          message: err instanceof Error ? err.message : "Failed to create SPOC.",
+        });
+      }
     }
   };
 

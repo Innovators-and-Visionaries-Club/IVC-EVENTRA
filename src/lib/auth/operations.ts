@@ -4,13 +4,25 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export async function requireOperationsRole() {
   const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
 
-  if (authError || !user) {
-    throw new Error("Unauthorized: Authentication required");
+  const { data: sessionData } = await supabase.auth.getSession();
+  let user = sessionData?.session?.user;
+
+  if (!user) {
+    const { data: userData, error: authError } = await supabase.auth.getUser();
+    if (authError || !userData?.user) {
+      throw new Error("Unauthorized: Authentication required");
+    }
+    user = userData.user;
+  }
+
+  // Fast-path: Check metadata first
+  const metaRole =
+    (user.user_metadata?.role as string | undefined) ||
+    (user.app_metadata?.role as string | undefined);
+
+  if (metaRole && ["admin", "staff", "organizer"].includes(metaRole)) {
+    return { user, profile: { role: metaRole } };
   }
 
   const { data: profile } = await supabaseAdmin
@@ -19,7 +31,7 @@ export async function requireOperationsRole() {
     .eq("id", user.id)
     .maybeSingle();
 
-  const role = profile?.role || (user.user_metadata?.role as string | undefined);
+  const role = profile?.role || metaRole;
   if (!role || !["admin", "staff", "organizer"].includes(role)) {
     throw new Error("Forbidden: Operational staff privileges required");
   }

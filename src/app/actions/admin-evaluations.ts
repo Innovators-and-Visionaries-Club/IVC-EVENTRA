@@ -37,8 +37,8 @@ export async function overrideEvaluationStatus(data: EvaluationOverrideInput) {
     throw new Error(`Failed to update evaluation status: ${updateError.message}`);
   }
 
-  // 3. Log action in audit_logs
-  const { error: auditError } = await supabaseAdmin.from("audit_logs").insert([
+  // 3. Log action in audit_logs (non-blocking)
+  void supabaseAdmin.from("audit_logs").insert([
     {
       action: "EVALUATION_STATUS_OVERRIDE",
       entity_type: "evaluation",
@@ -52,10 +52,6 @@ export async function overrideEvaluationStatus(data: EvaluationOverrideInput) {
       created_at: new Date().toISOString(),
     },
   ]);
-
-  if (auditError) {
-    console.error(`Audit log creation warning: ${auditError.message}`);
-  }
 
   return { evaluation: updatedEvaluation, success: true };
 }

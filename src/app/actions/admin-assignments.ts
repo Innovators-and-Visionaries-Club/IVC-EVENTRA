@@ -131,8 +131,8 @@ export async function updateJudgeTeams(data: {
     }
   }
 
-  // 3. Audit log write
-  await supabaseAdmin.from("audit_logs").insert([
+  // 3. Audit log write (non-blocking)
+  void supabaseAdmin.from("audit_logs").insert([
     {
       action: "UPDATE_JUDGE_ASSIGNMENTS",
       entity_type: "judge_assignments",
@@ -178,8 +178,8 @@ export async function toggleSingleAssignment(data: {
     if (error) throw new Error(`Failed to unassign team: ${error.message}`);
   }
 
-  // Audit log
-  await supabaseAdmin.from("audit_logs").insert([
+  // Audit log (non-blocking)
+  void supabaseAdmin.from("audit_logs").insert([
     {
       action: data.assign ? "ASSIGN_TEAM_TO_JUDGE" : "UNASSIGN_TEAM_FROM_JUDGE",
       entity_type: "judge_assignments",

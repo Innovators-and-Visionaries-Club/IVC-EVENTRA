@@ -96,8 +96,8 @@ export async function triggerResultsEngine(data: ResultActionInput) {
     }
   }
 
-  // Record action in audit_logs
-  const { error: auditError } = await supabaseAdmin.from("audit_logs").insert([
+  // Record action in audit_logs (non-blocking)
+  void supabaseAdmin.from("audit_logs").insert([
     {
       action: `RESULTS_ENGINE_${validated.action.toUpperCase()}`,
       entity_type: "event_results",
@@ -110,10 +110,6 @@ export async function triggerResultsEngine(data: ResultActionInput) {
       created_at: new Date().toISOString(),
     },
   ]);
-
-  if (auditError) {
-    console.error(`Audit log creation warning: ${auditError.message}`);
-  }
 
   return { success: true, action: validated.action, event_id: validated.event_id };
 }

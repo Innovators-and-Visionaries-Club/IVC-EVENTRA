@@ -165,9 +165,24 @@ export default function ScannerClientView() {
   ) => {
     if (!teamData?.team?.id) return;
     const actionKey = `${participantId}-${actionType}`;
-    setActionLoading(actionKey);
     setErrorMsg(null);
-    setSuccessMsg(null);
+
+    // 1. Instant optimistic update so button state flips with 0ms perceived lag
+    const optimisticLog: ActivityLogEntry = {
+      participant_id: participantId,
+      action_type: actionType,
+      created_at: new Date().toISOString(),
+    };
+
+    setTeamData((prev) =>
+      !prev
+        ? null
+        : {
+            ...prev,
+            activityLogs: [...prev.activityLogs, optimisticLog],
+          }
+    );
+    setSuccessMsg(`Claimed "${actionType.toUpperCase()}"!`);
 
     try {
       await recordMemberAction({
@@ -175,29 +190,20 @@ export default function ScannerClientView() {
         participant_id: participantId,
         action_type: actionType,
       });
-
-      // Update state locally
+    } catch (err: unknown) {
+      // Revert optimistic update on failure
       setTeamData((prev) =>
         !prev
           ? null
           : {
               ...prev,
-              activityLogs: [
-                ...prev.activityLogs,
-                {
-                  participant_id: participantId,
-                  action_type: actionType,
-                  created_at: new Date().toISOString(),
-                },
-              ],
+              activityLogs: prev.activityLogs.filter(
+                (log) => !(log.participant_id === participantId && log.action_type === actionType)
+              ),
             }
       );
-
-      setSuccessMsg(`Successfully claimed "${actionType.toUpperCase()}"!`);
-    } catch (err: unknown) {
       setErrorMsg(err instanceof Error ? err.message : "Action claim failed");
-    } finally {
-      setActionLoading(null);
+      setSuccessMsg(null);
     }
   };
 

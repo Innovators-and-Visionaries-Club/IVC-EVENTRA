@@ -140,8 +140,8 @@ export async function createSpoc(data: {
     throw new Error(`Failed to create SPOC: ${error.message}`);
   }
 
-  // Audit log
-  await supabaseAdmin.from("audit_logs").insert([
+  // Audit log (non-blocking)
+  void supabaseAdmin.from("audit_logs").insert([
     {
       action: "CREATE_SPOC",
       entity_type: "spoc",
@@ -185,8 +185,8 @@ export async function updateSpoc(data: {
     throw new Error(`Failed to update SPOC: ${error.message}`);
   }
 
-  // Audit log
-  await supabaseAdmin.from("audit_logs").insert([
+  // Audit log (non-blocking)
+  void supabaseAdmin.from("audit_logs").insert([
     {
       action: "UPDATE_SPOC",
       entity_type: "spoc",
@@ -222,8 +222,8 @@ export async function deleteSpoc(spocId: string) {
     throw new Error(`Failed to delete SPOC: ${error.message}`);
   }
 
-  // Audit log
-  await supabaseAdmin.from("audit_logs").insert([
+  // Audit log (non-blocking)
+  void supabaseAdmin.from("audit_logs").insert([
     {
       action: "DELETE_SPOC",
       entity_type: "spoc",
@@ -277,8 +277,8 @@ export async function updateSpocTeams(data: {
     }
   }
 
-  // Audit log
-  await supabaseAdmin.from("audit_logs").insert([
+  // Audit log (non-blocking)
+  void supabaseAdmin.from("audit_logs").insert([
     {
       action: "UPDATE_SPOC_ASSIGNMENTS",
       entity_type: "team_spoc_assignments",

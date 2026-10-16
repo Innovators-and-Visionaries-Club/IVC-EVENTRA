@@ -28,8 +28,8 @@ export async function createRound(data: RoundInput) {
     throw new Error(`Failed to create round: ${error.message}`);
   }
 
-  // Audit log write
-  await supabaseAdmin.from("audit_logs").insert([
+  // Audit log write (non-blocking)
+  void supabaseAdmin.from("audit_logs").insert([
     {
       action: "CREATE_EVALUATION_ROUND",
       entity_type: "evaluation_round",
@@ -69,8 +69,8 @@ export async function updateRoundStatus(roundId: string, status: RoundStatus) {
     throw new Error(`Failed to update round status: ${error.message}`);
   }
 
-  // Audit log write
-  await supabaseAdmin.from("audit_logs").insert([
+  // Audit log write (non-blocking)
+  void supabaseAdmin.from("audit_logs").insert([
     {
       action: "UPDATE_ROUND_STATUS",
       entity_type: "evaluation_round",
@@ -106,7 +106,8 @@ export async function updateRound(roundId: string, data: { title: string; sequen
     throw new Error(`Failed to update round: ${error.message}`);
   }
 
-  await supabaseAdmin.from("audit_logs").insert([
+  // Audit log write (non-blocking)
+  void supabaseAdmin.from("audit_logs").insert([
     {
       action: "UPDATE_EVALUATION_ROUND",
       entity_type: "evaluation_round",
@@ -132,7 +133,8 @@ export async function deleteRound(roundId: string) {
     throw new Error(`Failed to delete round: ${error.message}`);
   }
 
-  await supabaseAdmin.from("audit_logs").insert([
+  // Audit log write (non-blocking)
+  void supabaseAdmin.from("audit_logs").insert([
     {
       action: "DELETE_EVALUATION_ROUND",
       entity_type: "evaluation_round",
@@ -160,8 +162,8 @@ export async function createCriterion(data: CriterionInput) {
     throw new Error(`Failed to create criterion: ${error.message}`);
   }
 
-  // Audit log write
-  await supabaseAdmin.from("audit_logs").insert([
+  // Audit log write (non-blocking)
+  void supabaseAdmin.from("audit_logs").insert([
     {
       action: "CREATE_CRITERION",
       entity_type: "evaluation_criterion",
@@ -194,8 +196,8 @@ export async function updateCriterion(criterionId: string, data: UpdateCriterion
     throw new Error(`Failed to update criterion: ${error.message}`);
   }
 
-  // Audit log write
-  await supabaseAdmin.from("audit_logs").insert([
+  // Audit log write (non-blocking)
+  void supabaseAdmin.from("audit_logs").insert([
     {
       action: "UPDATE_CRITERION",
       entity_type: "evaluation_criterion",
@@ -221,8 +223,8 @@ export async function deleteCriterion(criterionId: string) {
     throw new Error(`Failed to delete criterion: ${error.message}`);
   }
 
-  // Audit log write
-  await supabaseAdmin.from("audit_logs").insert([
+  // Audit log write (non-blocking)
+  void supabaseAdmin.from("audit_logs").insert([
     {
       action: "DELETE_CRITERION",
       entity_type: "evaluation_criterion",
