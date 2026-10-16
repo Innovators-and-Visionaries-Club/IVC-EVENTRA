@@ -22,6 +22,9 @@ import {
   ChevronDown,
   ChevronRight,
   Sparkles,
+  Download,
+  Upload,
+  FileSpreadsheet,
 } from "lucide-react";
 import {
   UserProfileItem,
@@ -31,6 +34,8 @@ import {
   deleteUser,
   TeamHierarchyItem,
   seedMockDataServerAction,
+  bulkImportUsers,
+  BulkImportUserRecord,
 } from "@/app/actions/admin-users";
 
 interface UsersClientProps {
@@ -142,6 +147,186 @@ export default function UsersClientView({
   });
   const [formLoading, setFormLoading] = useState(false);
   const [seedingLoading, setSeedingLoading] = useState(false);
+
+  // Import / Export State
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importPreview, setImportPreview] = useState<BulkImportUserRecord[]>([]);
+  const [importError, setImportError] = useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  // Export Users as CSV
+  const handleExportCSV = () => {
+    try {
+      const headers = ["Full Name", "Email", "Role", "Team Name", "Team Role", "Created At"];
+      const rows = usersList.map((u) => [
+        `"${(u.full_name || "").replace(/"/g, '""')}"`,
+        `"${(u.email || "").replace(/"/g, '""')}"`,
+        `"${u.role || ""}"`,
+        `"${(u.team_name || "").replace(/"/g, '""')}"`,
+        `"${(u.team_role || "").replace(/"/g, '""')}"`,
+        `"${u.created_at || ""}"`,
+      ]);
+
+      const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `ivc_pulse_users_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setNotification({
+        type: "success",
+        message: `Successfully exported ${usersList.length} users to CSV. You can also import this into Google Sheets.`,
+      });
+    } catch (err: unknown) {
+      setNotification({
+        type: "error",
+        message: err instanceof Error ? err.message : "Failed to export CSV.",
+      });
+    }
+  };
+
+  // Download Sample CSV Template
+  const handleDownloadSampleTemplate = () => {
+    const headers = ["Full Name", "Email", "Role", "Password", "Team Name", "Team Code", "Track"];
+    const sampleRows = [
+      ['"Dr. Rajesh Sharma"', '"judge.rajesh@ivc.pulse"', '"judge"', '"Password@123"', '""', '""', '""'],
+      ['"Ananya Rao"', '"lead.team21@ivc.pulse"', '"leader"', '"Password@123"', '"Team CyberViper"', '"CV-21"', '"Artificial Intelligence"'],
+      ['"Rohan Verma"', '"member1.team21@ivc.pulse"', '"participant"', '"Password@123"', '"Team CyberViper"', '"CV-21"', '"Artificial Intelligence"'],
+      ['"Kavita Patil"', '"spoc.kavita@ivc.pulse"', '"staff"', '"Password@123"', '""', '""', '""'],
+    ];
+
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...sampleRows.map((e) => e.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "ivc_pulse_users_template.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Parse Uploaded CSV File
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImportFile(file);
+    setImportError(null);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        if (!text) return;
+
+        // Split by lines
+        const lines = text.split(/\r\n|\n/).filter((l) => l.trim().length > 0);
+        if (lines.length < 2) {
+          setImportError("CSV file must have a header row and at least one data row.");
+          return;
+        }
+
+        // Parse header
+        const rawHeaders = lines[0].split(",").map((h) => h.replace(/^["']|["']$/g, "").trim().toLowerCase());
+        
+        // Find column indices
+        const nameIdx = rawHeaders.findIndex((h) => h.includes("name"));
+        const emailIdx = rawHeaders.findIndex((h) => h.includes("email"));
+        const roleIdx = rawHeaders.findIndex((h) => h.includes("role"));
+        const passIdx = rawHeaders.findIndex((h) => h.includes("pass"));
+        const teamNameIdx = rawHeaders.findIndex((h) => h.includes("team") && !h.includes("code") && !h.includes("role"));
+        const teamCodeIdx = rawHeaders.findIndex((h) => h.includes("code"));
+        const trackIdx = rawHeaders.findIndex((h) => h.includes("track"));
+
+        if (emailIdx === -1) {
+          setImportError("CSV header must contain an 'Email' column.");
+          return;
+        }
+
+        // Helper regex to split CSV respecting quotes
+        const parseCSVLine = (line: string): string[] => {
+          const result: string[] = [];
+          let current = "";
+          let inQuotes = false;
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"' || char === "'") {
+              inQuotes = !inQuotes;
+            } else if (char === "," && !inQuotes) {
+              result.push(current.trim().replace(/^["']|["']$/g, ""));
+              current = "";
+            } else {
+              current += char;
+            }
+          }
+          result.push(current.trim().replace(/^["']|["']$/g, ""));
+          return result;
+        };
+
+        const records: BulkImportUserRecord[] = [];
+        for (let i = 1; i < lines.length; i++) {
+          const cols = parseCSVLine(lines[i]);
+          const email = cols[emailIdx]?.trim();
+          const fullName = nameIdx !== -1 ? cols[nameIdx]?.trim() : email.split("@")[0];
+          let roleRaw = (roleIdx !== -1 ? cols[roleIdx]?.trim().toLowerCase() : "participant") as AllowedUserRole;
+          
+          if (!["admin", "judge", "staff", "organizer", "participant", "leader"].includes(roleRaw)) {
+            roleRaw = "participant";
+          }
+
+          if (email) {
+            records.push({
+              email,
+              full_name: fullName || email.split("@")[0],
+              role: roleRaw,
+              password: passIdx !== -1 && cols[passIdx] ? cols[passIdx] : undefined,
+              team_name: teamNameIdx !== -1 ? cols[teamNameIdx] : undefined,
+              team_code: teamCodeIdx !== -1 ? cols[teamCodeIdx] : undefined,
+              track: trackIdx !== -1 ? cols[trackIdx] : undefined,
+            });
+          }
+        }
+
+        if (records.length === 0) {
+          setImportError("No valid rows found in the CSV.");
+          return;
+        }
+
+        setImportPreview(records);
+      } catch (err: unknown) {
+        setImportError(err instanceof Error ? err.message : "Failed to parse CSV file.");
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // Submit Bulk Import
+  const handleRunBulkImport = async () => {
+    if (importPreview.length === 0) return;
+    setImportLoading(true);
+    setImportError(null);
+
+    try {
+      const res = await bulkImportUsers(importPreview);
+      setNotification({
+        type: "success",
+        message: `Bulk Import Completed! Processed ${res.total} users (${res.created} created, ${res.updated} updated, ${res.errors.length} skipped).`,
+      });
+      setIsImportModalOpen(false);
+      setImportFile(null);
+      setImportPreview([]);
+      router.refresh();
+    } catch (err: unknown) {
+      setImportError(err instanceof Error ? err.message : "Failed to import users.");
+    } finally {
+      setImportLoading(false);
+    }
+  };
 
   const handleSeedMockData = async () => {
     if (!confirm("Seed database with 5 Judges, 5 SPOCs, 5 Club Members, and 20 Teams (60 Participants)? This will populate all portals.")) {
@@ -323,23 +508,45 @@ export default function UsersClientView({
           </p>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          {/* Export CSV / Sheets */}
+          <button
+            onClick={handleExportCSV}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-surface-color border border-border-color hover:border-accent-primary text-text-primary font-tech font-bold uppercase tracking-wider text-xs transition-all hover:bg-surface-color-light cursor-pointer"
+            title="Export all current user profiles, roles, and teams to CSV / Google Sheets"
+          >
+            <Download size={14} className="text-accent-primary" />
+            <span>Export CSV / Sheets</span>
+          </button>
+
+          {/* Import CSV / Sheets */}
+          <button
+            onClick={() => setIsImportModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-surface-color border border-accent-tertiary/50 hover:border-accent-tertiary text-accent-tertiary font-tech font-bold uppercase tracking-wider text-xs transition-all hover:bg-accent-tertiary/10 cursor-pointer"
+            title="Import users and team affiliations from CSV file or Google Sheets export"
+          >
+            <Upload size={14} />
+            <span>Import CSV</span>
+          </button>
+
+          {/* Seed Database */}
           <button
             disabled={seedingLoading}
             onClick={handleSeedMockData}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-surface-color border border-accent-secondary/50 hover:border-accent-secondary text-accent-secondary hover:text-white font-tech font-bold uppercase tracking-wider text-xs transition-all hover:bg-accent-secondary/15 disabled:opacity-50 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-surface-color border border-accent-secondary/50 hover:border-accent-secondary text-accent-secondary hover:text-white font-tech font-bold uppercase tracking-wider text-xs transition-all hover:bg-accent-secondary/15 disabled:opacity-50 cursor-pointer"
             title="Populate 5 Judges, 5 SPOCs, 5 Club Members, and 20 Teams (60 Participants)"
           >
-            <Sparkles size={15} className={seedingLoading ? "animate-spin" : ""} />
-            <span>{seedingLoading ? "Seeding Database..." : "Seed All Portals Data"}</span>
+            <Sparkles size={14} className={seedingLoading ? "animate-spin" : ""} />
+            <span>{seedingLoading ? "Seeding..." : "Seed Portals"}</span>
           </button>
 
+          {/* Add Single User */}
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-accent-secondary to-accent-primary text-black font-tech font-bold uppercase tracking-wider text-xs transition-all hover:opacity-90 shadow-[0_0_20px_rgba(255,0,127,0.3)] cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-accent-secondary to-accent-primary text-black font-tech font-bold uppercase tracking-wider text-xs transition-all hover:opacity-90 shadow-[0_0_20px_rgba(255,0,127,0.3)] cursor-pointer"
           >
-            <UserPlus size={16} />
-            <span>Add New User</span>
+            <UserPlus size={15} />
+            <span>Add User</span>
           </button>
         </div>
       </div>
@@ -860,6 +1067,166 @@ export default function UsersClientView({
                 className="px-4 py-2 bg-status-error text-white font-bold uppercase tracking-wider text-xs hover:bg-status-error/90 transition-all cursor-pointer"
               >
                 Delete Account
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* IMPORT CSV / GOOGLE SHEETS MODAL */}
+      {isImportModalOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in font-tech">
+          <div className="glass-panel max-w-xl w-full p-6 border border-accent-tertiary/60 shadow-2xl relative space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-border-color pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded bg-accent-tertiary/15 border border-accent-tertiary/40">
+                  <FileSpreadsheet className="w-5 h-5 text-accent-tertiary" />
+                </div>
+                <div>
+                  <h3 className="font-heading text-lg text-text-primary uppercase tracking-wider m-0">
+                    Import Users via CSV / Sheets
+                  </h3>
+                  <p className="text-[11px] text-text-secondary m-0">
+                    Bulk provision judges, participants, team leaders, or staff from a spreadsheet.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setIsImportModalOpen(false);
+                  setImportFile(null);
+                  setImportPreview([]);
+                  setImportError(null);
+                }}
+                className="text-text-secondary hover:text-text-primary p-1"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Template & Guidelines */}
+            <div className="bg-surface-color/60 border border-border-color p-3.5 rounded space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-text-primary uppercase tracking-wide flex items-center gap-1.5">
+                  <Sparkles size={13} className="text-accent-secondary" />
+                  Format Requirements
+                </span>
+                <button
+                  onClick={handleDownloadSampleTemplate}
+                  className="inline-flex items-center gap-1 text-[11px] text-accent-primary hover:underline font-mono font-bold cursor-pointer"
+                >
+                  <Download size={12} />
+                  Download Sample Template (.CSV)
+                </button>
+              </div>
+              <p className="text-text-secondary text-[11px] leading-relaxed m-0">
+                Columns supported: <code className="text-accent-tertiary font-mono">Full Name</code>, <code className="text-accent-tertiary font-mono">Email</code>, <code className="text-accent-tertiary font-mono">Role</code> (judge / leader / participant / staff / admin), <code className="text-accent-tertiary font-mono">Password</code> (optional, defaults to Password@123), <code className="text-accent-tertiary font-mono">Team Name</code>, <code className="text-accent-tertiary font-mono">Team Code</code>, <code className="text-accent-tertiary font-mono">Track</code>.
+              </p>
+              <p className="text-[10px] text-text-secondary/70 m-0">
+                Tip: In Google Sheets, click <em>File → Download → Comma Separated Values (.csv)</em> and upload it below.
+              </p>
+            </div>
+
+            {/* File Upload Box */}
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="border-2 border-dashed border-border-color hover:border-accent-tertiary p-6 rounded text-center cursor-pointer bg-surface-color/30 hover:bg-surface-color transition-all"
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,text/csv"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              <Upload className="w-8 h-8 text-accent-tertiary mx-auto mb-2 opacity-80" />
+              <p className="text-xs font-bold text-text-primary uppercase tracking-wider m-0">
+                {importFile ? importFile.name : "Click to select or drop CSV file here"}
+              </p>
+              <p className="text-[10px] font-mono text-text-secondary mt-1 m-0">
+                {importFile ? `${(importFile.size / 1024).toFixed(1)} KB` : "Supports UTF-8 CSV exports from Excel or Google Sheets"}
+              </p>
+            </div>
+
+            {/* Error banner */}
+            {importError && (
+              <div className="p-3 bg-status-error/15 border border-status-error/40 text-status-error rounded text-xs flex items-center gap-2">
+                <AlertCircle size={15} />
+                <span>{importError}</span>
+              </div>
+            )}
+
+            {/* Preview Table */}
+            {importPreview.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-text-primary uppercase">
+                    Preview ({importPreview.length} records ready):
+                  </span>
+                  <span className="text-[11px] text-status-success font-mono">
+                    ✓ Validated
+                  </span>
+                </div>
+                <div className="border border-border-color rounded max-h-48 overflow-y-auto bg-surface-color/40">
+                  <table className="w-full text-left text-[11px] font-mono">
+                    <thead className="bg-surface-color-light text-text-secondary sticky top-0 border-b border-border-color">
+                      <tr>
+                        <th className="p-2">Name</th>
+                        <th className="p-2">Email</th>
+                        <th className="p-2">Role</th>
+                        <th className="p-2">Team</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border-color/40">
+                      {importPreview.slice(0, 15).map((row, idx) => (
+                        <tr key={idx} className="hover:bg-surface-color">
+                          <td className="p-2 text-text-primary font-bold">{row.full_name}</td>
+                          <td className="p-2 text-text-secondary">{row.email}</td>
+                          <td className="p-2">
+                            <span className="px-1.5 py-0.5 rounded text-[9px] uppercase bg-surface-color border border-border-color text-accent-primary">
+                              {row.role}
+                            </span>
+                          </td>
+                          <td className="p-2 text-text-secondary">
+                            {row.team_name || "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {importPreview.length > 15 && (
+                  <p className="text-[10px] text-text-secondary text-right m-0">
+                    Showing first 15 of {importPreview.length} records...
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Modal Actions */}
+            <div className="pt-3 border-t border-border-color flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsImportModalOpen(false);
+                  setImportFile(null);
+                  setImportPreview([]);
+                  setImportError(null);
+                }}
+                className="px-4 py-2 border border-border-color text-text-secondary hover:text-text-primary text-xs uppercase font-bold tracking-wider cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={importLoading || importPreview.length === 0}
+                onClick={handleRunBulkImport}
+                className="px-5 py-2 bg-gradient-to-r from-accent-tertiary to-accent-primary text-black font-bold uppercase tracking-wider text-xs hover:opacity-90 transition-all disabled:opacity-40 cursor-pointer flex items-center gap-2"
+              >
+                {importLoading && <RefreshCw size={14} className="animate-spin" />}
+                <span>
+                  {importLoading ? "Importing Records..." : `Import ${importPreview.length} Users`}
+                </span>
               </button>
             </div>
           </div>

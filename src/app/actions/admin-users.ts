@@ -824,3 +824,170 @@ export async function seedMockDataServerAction() {
 
   return { success: true, results };
 }
+
+export interface BulkImportUserRecord {
+  full_name: string;
+  email: string;
+  role: AllowedUserRole;
+  password?: string;
+  team_name?: string;
+  team_code?: string;
+  track?: string;
+}
+
+export async function bulkImportUsers(records: BulkImportUserRecord[]) {
+  const { user } = await requireAdmin();
+
+  if (!records || records.length === 0) {
+    throw new Error("No records provided for import.");
+  }
+
+  const results = {
+    total: records.length,
+    created: 0,
+    updated: 0,
+    errors: [] as string[],
+  };
+
+  const DEFAULT_PASSWORD = "Password@123";
+
+  for (const item of records) {
+    const email = item.email?.trim().toLowerCase();
+    const fullName = item.full_name?.trim();
+    const role: AllowedUserRole = (item.role?.toLowerCase() as AllowedUserRole) || "participant";
+    const password = item.password?.trim() || DEFAULT_PASSWORD;
+
+    if (!email || !fullName) {
+      results.errors.push(`Row skipped: missing email or full name (${JSON.stringify(item)})`);
+      continue;
+    }
+
+    try {
+      // 1. Check if user already exists in auth or profiles
+      let userId: string | null = null;
+      const { data: existingProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("id, role")
+        .eq("email", email)
+        .maybeSingle();
+
+      if (existingProfile) {
+        userId = existingProfile.id;
+        // Update profile
+        await supabaseAdmin
+          .from("profiles")
+          .update({
+            full_name: fullName,
+            role: role,
+          })
+          .eq("id", userId);
+
+        try {
+          await supabaseAdmin.auth.admin.updateUserById(userId, {
+            user_metadata: { full_name: fullName, role },
+          });
+        } catch {
+          // Ignore metadata sync error
+        }
+
+        results.updated++;
+      } else {
+        // Try creating in auth
+        try {
+          const { data: newUser, error: createAuthErr } = await supabaseAdmin.auth.admin.createUser({
+            email,
+            password,
+            email_confirm: true,
+            user_metadata: { full_name: fullName, role },
+          });
+
+          if (createAuthErr) throw createAuthErr;
+          userId = newUser.user?.id || null;
+        } catch {
+          // If auth user already exists in auth.users
+          const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
+          const match = authUsers?.users?.find((u) => u.email?.toLowerCase() === email);
+          userId = match?.id || null;
+        }
+
+        if (userId) {
+          await supabaseAdmin.from("profiles").upsert({
+            id: userId,
+            email,
+            full_name: fullName,
+            role,
+          });
+          results.created++;
+        }
+      }
+
+      // If team information is provided, link them
+      if (userId && item.team_name) {
+        const teamName = item.team_name.trim();
+        let teamId: string | null = null;
+
+        const { data: existingTeam } = await supabaseAdmin
+          .from("teams")
+          .select("id")
+          .eq("name", teamName)
+          .maybeSingle();
+
+        if (existingTeam) {
+          teamId = existingTeam.id;
+        } else {
+          const { data: newTeam } = await supabaseAdmin
+            .from("teams")
+            .insert([
+              {
+                name: teamName,
+                code: item.team_code || null,
+                track: item.track || null,
+                leader_name: role === "leader" ? fullName : null,
+                status: "active",
+              },
+            ])
+            .select("id")
+            .single();
+
+          if (newTeam) teamId = newTeam.id;
+        }
+
+        if (teamId) {
+          await supabaseAdmin.from("team_members").upsert(
+            {
+              team_id: teamId,
+              user_id: userId,
+              role: role === "leader" ? "leader" : "member",
+              name: fullName,
+              email: email,
+            },
+            { onConflict: "team_id,user_id" }
+          );
+        }
+      }
+    } catch (err: unknown) {
+      results.errors.push(`Error for ${email}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  // Audit log
+  void supabaseAdmin.from("audit_logs").insert([
+    {
+      action: "BULK_IMPORT_USERS",
+      entity_type: "user",
+      admin_id: user.id,
+      details: {
+        total: results.total,
+        created: results.created,
+        updated: results.updated,
+        error_count: results.errors.length,
+      },
+    },
+  ]);
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/users");
+
+  return results;
+}
+
