@@ -53,11 +53,34 @@ export default function AssignmentsClientView({
     [judges, selectedJudgeId]
   );
 
-  // Selected teams for the active judge
-  const assignedTeamIds = useMemo(
-    () => new Set(activeJudge?.assigned_team_ids || []),
-    [activeJudge]
-  );
+  // Pending stage state: map of judgeId -> string[] of selected team IDs
+  const [pendingAssignedMap, setPendingAssignedMap] = useState<Record<string, string[]>>({});
+
+  // Initialize pending map when judges load or change
+  useEffect(() => {
+    const initialMap: Record<string, string[]> = {};
+    judges.forEach((j) => {
+      initialMap[j.id] = [...j.assigned_team_ids];
+    });
+    setPendingAssignedMap(initialMap);
+  }, [judges]);
+
+  // Current staged team IDs for active judge
+  const stagedTeamIds = useMemo(() => {
+    if (!selectedJudgeId) return new Set<string>();
+    return new Set(pendingAssignedMap[selectedJudgeId] || activeJudge?.assigned_team_ids || []);
+  }, [selectedJudgeId, pendingAssignedMap, activeJudge]);
+
+  // Check if active judge has unsaved pending changes
+  const hasUnsavedChanges = useMemo(() => {
+    if (!activeJudge) return false;
+    const original = new Set(activeJudge.assigned_team_ids || []);
+    if (original.size !== stagedTeamIds.size) return true;
+    for (const id of stagedTeamIds) {
+      if (!original.has(id)) return true;
+    }
+    return false;
+  }, [activeJudge, stagedTeamIds]);
 
   // Distinct tracks
   const tracks = useMemo(() => {
@@ -84,19 +107,14 @@ export default function AssignmentsClientView({
   const [showOtherAssigned, setShowOtherAssigned] = useState(false);
 
   // Filtered teams:
-  // A team is available for this judge if:
-  // 1) It is currently assigned to this judge (so they can unassign it)
-  // 2) OR it is not assigned to ANY other judge (assigned_judge_ids is empty)
-  // If showOtherAssigned is checked, all teams are shown with assignment badges.
   const filteredTeams = useMemo(() => {
     return teams.filter((t) => {
       if (trackFilter !== "all" && t.track !== trackFilter) return false;
 
-      // Exclusion rule: If team is already assigned to a DIFFERENT judge, hide unless showOtherAssigned is true
-      const assignedToOther = t.assigned_judge_ids.some((id) => id !== selectedJudgeId);
-      const assignedToThis = t.assigned_judge_ids.includes(selectedJudgeId);
+      const isStagedInThis = stagedTeamIds.has(t.id);
+      const isAssignedToOther = t.assigned_judge_ids.some((id) => id !== selectedJudgeId);
 
-      if (!showOtherAssigned && assignedToOther && !assignedToThis) {
+      if (!showOtherAssigned && isAssignedToOther && !isStagedInThis) {
         return false;
       }
 
@@ -107,69 +125,91 @@ export default function AssignmentsClientView({
         t.code?.toLowerCase().includes(q)
       );
     });
-  }, [teams, teamSearch, trackFilter, selectedJudgeId, showOtherAssigned]);
+  }, [teams, teamSearch, trackFilter, selectedJudgeId, showOtherAssigned, stagedTeamIds]);
 
-  // Toggle team assignment for active judge
+  // Toggle team assignment for active judge (Staging in pendingAssignedMap only)
   const handleToggleTeam = (team: TeamOption) => {
     if (!activeJudge) return;
-
     const teamId = team.id;
-    const isAssignedToOther = team.assigned_judge_ids.some((id) => id !== activeJudge.id);
 
-    // If assigned to another judge and not currently assigned to this judge, prompt or block
-    if (isAssignedToOther && !activeJudge.assigned_team_ids.includes(teamId)) {
-      const otherNames = (team.assigned_judge_names || []).join(", ");
-      const confirmReassign = window.confirm(
-        `This team is already assigned to ${otherNames || "another judge"}. Do you want to reassign this team exclusively to ${activeJudge.full_name || "this judge"}?`
-      );
-      if (!confirmReassign) return;
-    }
+    setPendingAssignedMap((prev) => {
+      const currentList = prev[activeJudge.id] || [...activeJudge.assigned_team_ids];
+      const set = new Set(currentList);
+      if (set.has(teamId)) {
+        set.delete(teamId);
+      } else {
+        set.add(teamId);
+      }
+      return {
+        ...prev,
+        [activeJudge.id]: Array.from(set),
+      };
+    });
+  };
 
-    const currentIds = new Set(activeJudge.assigned_team_ids);
-    const wasAssigned = currentIds.has(teamId);
-    if (wasAssigned) {
-      currentIds.delete(teamId);
-    } else {
-      currentIds.add(teamId);
-    }
-    const nextArray = Array.from(currentIds);
+  // Bulk select all filtered teams for active judge locally (Staging only)
+  const handleSelectAllFiltered = () => {
+    if (!activeJudge) return;
+    setPendingAssignedMap((prev) => {
+      const currentList = prev[activeJudge.id] || [...activeJudge.assigned_team_ids];
+      const set = new Set(currentList);
+      filteredTeams.forEach((t) => set.add(t.id));
+      return {
+        ...prev,
+        [activeJudge.id]: Array.from(set),
+      };
+    });
+  };
+
+  // Bulk clear all teams for active judge locally (Staging only)
+  const handleClearAll = () => {
+    if (!activeJudge) return;
+    setPendingAssignedMap((prev) => ({
+      ...prev,
+      [activeJudge.id]: [],
+    }));
+  };
+
+  // Discard pending changes and reset to current saved DB state
+  const handleResetStaged = () => {
+    if (!activeJudge) return;
+    setPendingAssignedMap((prev) => ({
+      ...prev,
+      [activeJudge.id]: [...activeJudge.assigned_team_ids],
+    }));
+  };
+
+  // Explicit Confirm Allotment handler -> writes to database
+  const handleConfirmAllotment = () => {
+    if (!activeJudge) return;
+    const nextArray = Array.from(stagedTeamIds);
+    setNotification(null);
 
     // Optimistically update
     setJudges((prev) =>
-      prev.map((j) => {
-        if (j.id === activeJudge.id) {
-          return { ...j, assigned_team_ids: nextArray };
-        }
-        // If reassigning from another judge, remove from that judge
-        if (!wasAssigned && j.assigned_team_ids.includes(teamId)) {
-          return {
-            ...j,
-            assigned_team_ids: j.assigned_team_ids.filter((id) => id !== teamId),
-          };
-        }
-        return j;
-      })
+      prev.map((j) =>
+        j.id === activeJudge.id
+          ? { ...j, assigned_team_ids: nextArray }
+          : { ...j, assigned_team_ids: j.assigned_team_ids.filter((tId) => !nextArray.includes(tId)) }
+      )
     );
 
     setTeams((prev) =>
       prev.map((t) => {
-        if (t.id === teamId) {
-          if (wasAssigned) {
-            return {
-              ...t,
-              assigned_judge_ids: t.assigned_judge_ids.filter((id) => id !== activeJudge.id),
-              assigned_judge_names: (t.assigned_judge_names || []).filter(
-                (n) => n !== (activeJudge.full_name || activeJudge.email)
-              ),
-            };
-          } else {
-            // Exclusively assigned to this judge
-            return {
-              ...t,
-              assigned_judge_ids: [activeJudge.id],
-              assigned_judge_names: [activeJudge.full_name || activeJudge.email || "Judge"],
-            };
-          }
+        if (nextArray.includes(t.id)) {
+          return {
+            ...t,
+            assigned_judge_ids: [activeJudge.id],
+            assigned_judge_names: [activeJudge.full_name || activeJudge.email || "Judge"],
+          };
+        } else if (t.assigned_judge_ids.includes(activeJudge.id)) {
+          return {
+            ...t,
+            assigned_judge_ids: t.assigned_judge_ids.filter((id) => id !== activeJudge.id),
+            assigned_judge_names: (t.assigned_judge_names || []).filter(
+              (n) => n !== (activeJudge.full_name || activeJudge.email)
+            ),
+          };
         }
         return t;
       })
@@ -184,58 +224,12 @@ export default function AssignmentsClientView({
         });
         setNotification({
           type: "success",
-          message: wasAssigned
-            ? `Unassigned ${team.name} from ${activeJudge.full_name || "judge"}.`
-            : `Assigned ${team.name} exclusively to ${activeJudge.full_name || "judge"}.`,
+          message: `Allotment confirmed! Successfully saved ${nextArray.length} teams to ${activeJudge.full_name || "judge"}.`,
         });
       } catch (err: unknown) {
         setNotification({
           type: "error",
-          message: err instanceof Error ? err.message : "Failed to update assignments.",
-        });
-      }
-    });
-  };
-
-  // Bulk select all filtered teams for active judge
-  const handleSelectAllFiltered = () => {
-    if (!activeJudge) return;
-    const current = new Set(activeJudge.assigned_team_ids);
-    filteredTeams.forEach((t) => current.add(t.id));
-    const nextArray = Array.from(current);
-
-    setJudges((prev) =>
-      prev.map((j) => (j.id === activeJudge.id ? { ...j, assigned_team_ids: nextArray } : j))
-    );
-
-    startTransition(async () => {
-      try {
-        await updateJudgeTeams({ judgeId: activeJudge.id, teamIds: nextArray });
-        setNotification({ type: "success", message: `All filtered teams assigned.` });
-      } catch (err: unknown) {
-        setNotification({
-          type: "error",
-          message: err instanceof Error ? err.message : "Failed to assign teams.",
-        });
-      }
-    });
-  };
-
-  // Bulk clear all teams for active judge
-  const handleClearAll = () => {
-    if (!activeJudge) return;
-    setJudges((prev) =>
-      prev.map((j) => (j.id === activeJudge.id ? { ...j, assigned_team_ids: [] } : j))
-    );
-
-    startTransition(async () => {
-      try {
-        await updateJudgeTeams({ judgeId: activeJudge.id, teamIds: [] });
-        setNotification({ type: "success", message: `Cleared all team assignments.` });
-      } catch (err: unknown) {
-        setNotification({
-          type: "error",
-          message: err instanceof Error ? err.message : "Failed to clear assignments.",
+          message: err instanceof Error ? err.message : "Failed to confirm allotment.",
         });
       }
     });
@@ -361,24 +355,62 @@ export default function AssignmentsClientView({
                   </h2>
                 </div>
 
-                {/* Bulk Actions */}
-                <div className="flex items-center gap-2">
+                {/* Bulk Actions & Confirm Allotment */}
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     onClick={handleSelectAllFiltered}
                     disabled={isPending || filteredTeams.length === 0}
                     className="px-3 py-1.5 bg-surface-color-light border border-border-color hover:border-accent-primary text-text-primary text-xs uppercase font-bold tracking-wider rounded transition-colors disabled:opacity-50 cursor-pointer"
                   >
-                    Assign Filtered ({filteredTeams.length})
+                    Select Filtered ({filteredTeams.length})
                   </button>
                   <button
                     onClick={handleClearAll}
-                    disabled={isPending || activeJudge.assigned_team_ids.length === 0}
+                    disabled={isPending || stagedTeamIds.size === 0}
                     className="px-3 py-1.5 bg-status-error/10 border border-status-error/40 hover:bg-status-error/20 text-status-error text-xs uppercase font-bold tracking-wider rounded transition-colors disabled:opacity-50 cursor-pointer"
                   >
-                    Clear All
+                    Clear Selected
+                  </button>
+                  {hasUnsavedChanges && (
+                    <button
+                      onClick={handleResetStaged}
+                      disabled={isPending}
+                      className="px-2.5 py-1.5 text-xs text-text-secondary hover:text-text-primary underline font-mono cursor-pointer"
+                    >
+                      Reset
+                    </button>
+                  )}
+                  <button
+                    onClick={handleConfirmAllotment}
+                    disabled={isPending || !hasUnsavedChanges}
+                    className={`px-4 py-1.5 rounded font-tech text-xs uppercase tracking-wider font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      hasUnsavedChanges
+                        ? "bg-accent-primary text-black hover:bg-accent-primary/90 shadow-[0_0_15px_rgba(0,240,255,0.4)] animate-pulse"
+                        : "bg-surface-color-light text-text-secondary border border-border-color opacity-50 cursor-not-allowed"
+                    }`}
+                  >
+                    <Check size={14} className="stroke-[3]" />
+                    <span>Confirm Allotment ({stagedTeamIds.size})</span>
                   </button>
                 </div>
               </div>
+
+              {/* Unsaved changes notice banner */}
+              {hasUnsavedChanges && (
+                <div className="bg-accent-primary/10 border border-accent-primary/40 px-3 py-2 rounded flex items-center justify-between text-xs text-accent-primary animate-fade-in">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-accent-primary animate-ping" />
+                    <strong>{stagedTeamIds.size} team(s) selected.</strong> Click &quot;Confirm Allotment&quot; to apply changes to this judge.
+                  </span>
+                  <button
+                    onClick={handleConfirmAllotment}
+                    disabled={isPending}
+                    className="underline font-bold uppercase tracking-wider hover:text-text-primary cursor-pointer"
+                  >
+                    Save Allotment Now
+                  </button>
+                </div>
+              )}
 
               {/* Filters for Teams */}
               <div className="flex flex-col sm:flex-row items-center gap-3">
@@ -427,7 +459,7 @@ export default function AssignmentsClientView({
                   </div>
                 ) : (
                   filteredTeams.map((team) => {
-                    const isAssignedToThis = assignedTeamIds.has(team.id);
+                    const isAssignedToThis = stagedTeamIds.has(team.id);
                     const isAssignedToOther = team.assigned_judge_ids.some(
                       (id) => id !== activeJudge.id
                     );

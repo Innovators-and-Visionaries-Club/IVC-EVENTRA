@@ -79,17 +79,40 @@ export default function SpocClientView({
     message: string;
   } | null>(null);
 
+  // Pending stage state: map of spocId -> string[] of selected team IDs
+  const [pendingAssignedMap, setPendingAssignedMap] = useState<Record<string, string[]>>({});
+
+  // Sync initial allotments into pending state when SPOCs load or update
+  React.useEffect(() => {
+    const initialMap: Record<string, string[]> = {};
+    spocs.forEach((s) => {
+      initialMap[s.id] = [...s.assigned_team_ids];
+    });
+    setPendingAssignedMap(initialMap);
+  }, [spocs]);
+
   // Active selected SPOC
   const activeSpoc = useMemo(
     () => spocs.find((s) => s.id === selectedSpocId) || null,
     [spocs, selectedSpocId]
   );
 
-  // Set of team IDs assigned to this SPOC
-  const assignedTeamIds = useMemo(
-    () => new Set(activeSpoc?.assigned_team_ids || []),
-    [activeSpoc]
-  );
+  // Set of staged team IDs assigned to this SPOC
+  const stagedTeamIds = useMemo(() => {
+    if (!selectedSpocId) return new Set<string>();
+    return new Set(pendingAssignedMap[selectedSpocId] || activeSpoc?.assigned_team_ids || []);
+  }, [selectedSpocId, pendingAssignedMap, activeSpoc]);
+
+  // Check if active SPOC has unsaved pending changes
+  const hasUnsavedChanges = useMemo(() => {
+    if (!activeSpoc) return false;
+    const original = new Set(activeSpoc.assigned_team_ids || []);
+    if (original.size !== stagedTeamIds.size) return true;
+    for (const id of stagedTeamIds) {
+      if (!original.has(id)) return true;
+    }
+    return false;
+  }, [activeSpoc, stagedTeamIds]);
 
   // Distinct tracks
   const tracks = useMemo(() => {
@@ -120,9 +143,9 @@ export default function SpocClientView({
 
       // Exclusion rule: If team is allotted to ANOTHER SPOC, hide unless showOtherAssigned is true
       const isAssignedToOther = t.assigned_spoc_id && t.assigned_spoc_id !== selectedSpocId;
-      const isAssignedToThis = t.assigned_spoc_id === selectedSpocId;
+      const isStagedInThis = stagedTeamIds.has(t.id);
 
-      if (!showOtherAssigned && isAssignedToOther && !isAssignedToThis) {
+      if (!showOtherAssigned && isAssignedToOther && !isStagedInThis) {
         return false;
       }
 
@@ -133,7 +156,7 @@ export default function SpocClientView({
         t.code?.toLowerCase().includes(q)
       );
     });
-  }, [teams, teamSearch, trackFilter, selectedSpocId, showOtherAssigned]);
+  }, [teams, teamSearch, trackFilter, selectedSpocId, showOtherAssigned, stagedTeamIds]);
 
   // Helper to format WhatsApp URL
   const getWhatsAppLink = (phone?: string | null, name?: string) => {
@@ -291,61 +314,97 @@ export default function SpocClientView({
     });
   };
 
-  // Toggle Team Allotment for active SPOC
+  // Toggle Team Allotment for active SPOC (Staging in pendingAssignedMap only)
   const handleToggleTeam = (team: SpocTeamOption) => {
     if (!activeSpoc) return;
-
     const teamId = team.id;
-    const isAssignedToOther = team.assigned_spoc_id && team.assigned_spoc_id !== activeSpoc.id;
 
-    if (isAssignedToOther && !activeSpoc.assigned_team_ids.includes(teamId)) {
-      const confirmReassign = window.confirm(
-        `Team "${team.name}" is already allotted to ${team.assigned_spoc_name || "another SPOC"}. Reallot exclusively to ${activeSpoc.name}?`
-      );
-      if (!confirmReassign) return;
-    }
+    setPendingAssignedMap((prev) => {
+      const currentList = prev[activeSpoc.id] || [...activeSpoc.assigned_team_ids];
+      const set = new Set(currentList);
+      if (set.has(teamId)) {
+        set.delete(teamId);
+      } else {
+        set.add(teamId);
+      }
+      return {
+        ...prev,
+        [activeSpoc.id]: Array.from(set),
+      };
+    });
+  };
 
-    const currentIds = new Set(activeSpoc.assigned_team_ids);
-    const wasAssigned = currentIds.has(teamId);
+  // Bulk select filtered teams for active SPOC (Staging only)
+  const handleSelectAllFiltered = () => {
+    if (!activeSpoc) return;
+    setPendingAssignedMap((prev) => {
+      const currentList = prev[activeSpoc.id] || [...activeSpoc.assigned_team_ids];
+      const set = new Set(currentList);
+      filteredTeams.forEach((t) => set.add(t.id));
+      return {
+        ...prev,
+        [activeSpoc.id]: Array.from(set),
+      };
+    });
+  };
 
-    if (wasAssigned) {
-      currentIds.delete(teamId);
-    } else {
-      currentIds.add(teamId);
-    }
+  // Bulk clear selected teams for active SPOC (Staging only)
+  const handleClearAll = () => {
+    if (!activeSpoc) return;
+    setPendingAssignedMap((prev) => ({
+      ...prev,
+      [activeSpoc.id]: [],
+    }));
+  };
 
-    const nextArray = Array.from(currentIds);
+  // Discard pending changes and reset to current saved DB state for active SPOC
+  const handleResetStaged = () => {
+    if (!activeSpoc) return;
+    setPendingAssignedMap((prev) => ({
+      ...prev,
+      [activeSpoc.id]: [...activeSpoc.assigned_team_ids],
+    }));
+  };
 
-    // Optimistically update
+  // Explicit Confirm Allotment handler -> writes to database
+  const handleConfirmSpocAllotment = () => {
+    if (!activeSpoc) return;
+    const nextArray = Array.from(stagedTeamIds);
+    setNotification(null);
+
+    // Optimistically update SPOCs and Teams
     setSpocs((prev) =>
       prev.map((s) => {
         if (s.id === activeSpoc.id) {
           return { ...s, assigned_team_ids: nextArray };
         }
-        if (!wasAssigned && s.assigned_team_ids.includes(teamId)) {
-          return {
-            ...s,
-            assigned_team_ids: s.assigned_team_ids.filter((id) => id !== teamId),
-          };
-        }
-        return s;
+        return {
+          ...s,
+          assigned_team_ids: s.assigned_team_ids.filter((id) => !nextArray.includes(id)),
+        };
       })
     );
 
     setTeams((prev) =>
       prev.map((t) => {
-        if (t.id === teamId) {
+        if (nextArray.includes(t.id)) {
           return {
             ...t,
-            assigned_spoc_id: wasAssigned ? null : activeSpoc.id,
-            assigned_spoc_name: wasAssigned ? null : activeSpoc.name,
+            assigned_spoc_id: activeSpoc.id,
+            assigned_spoc_name: activeSpoc.name,
+          };
+        } else if (t.assigned_spoc_id === activeSpoc.id) {
+          return {
+            ...t,
+            assigned_spoc_id: null,
+            assigned_spoc_name: null,
           };
         }
         return t;
       })
     );
 
-    // Save to DB
+    // Save to database
     startTransition(async () => {
       try {
         await updateSpocTeams({
@@ -354,58 +413,12 @@ export default function SpocClientView({
         });
         setNotification({
           type: "success",
-          message: wasAssigned
-            ? `Unallotted ${team.name} from ${activeSpoc.name}.`
-            : `Allotted ${team.name} exclusively to ${activeSpoc.name}.`,
+          message: `Allotment confirmed! Successfully saved ${nextArray.length} teams to ${activeSpoc.name}.`,
         });
       } catch (err: unknown) {
         setNotification({
           type: "error",
-          message: err instanceof Error ? err.message : "Failed to update SPOC allotments.",
-        });
-      }
-    });
-  };
-
-  // Bulk assign filtered
-  const handleSelectAllFiltered = () => {
-    if (!activeSpoc) return;
-    const current = new Set(activeSpoc.assigned_team_ids);
-    filteredTeams.forEach((t) => current.add(t.id));
-    const nextArray = Array.from(current);
-
-    setSpocs((prev) =>
-      prev.map((s) => (s.id === activeSpoc.id ? { ...s, assigned_team_ids: nextArray } : s))
-    );
-
-    startTransition(async () => {
-      try {
-        await updateSpocTeams({ spocId: activeSpoc.id, teamIds: nextArray });
-        setNotification({ type: "success", message: `All filtered teams allotted to ${activeSpoc.name}.` });
-      } catch (err: unknown) {
-        setNotification({
-          type: "error",
-          message: err instanceof Error ? err.message : "Failed to allot teams.",
-        });
-      }
-    });
-  };
-
-  // Bulk clear
-  const handleClearAll = () => {
-    if (!activeSpoc) return;
-    setSpocs((prev) =>
-      prev.map((s) => (s.id === activeSpoc.id ? { ...s, assigned_team_ids: [] } : s))
-    );
-
-    startTransition(async () => {
-      try {
-        await updateSpocTeams({ spocId: activeSpoc.id, teamIds: [] });
-        setNotification({ type: "success", message: `Cleared all allotments for ${activeSpoc.name}.` });
-      } catch (err: unknown) {
-        setNotification({
-          type: "error",
-          message: err instanceof Error ? err.message : "Failed to clear allotments.",
+          message: err instanceof Error ? err.message : "Failed to confirm SPOC allotments.",
         });
       }
     });
@@ -637,24 +650,62 @@ export default function SpocClientView({
                   </div>
                 </div>
 
-                {/* Bulk Actions */}
-                <div className="flex items-center gap-2 shrink-0">
+                {/* Bulk Actions & Confirm Allotment */}
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
                   <button
                     onClick={handleSelectAllFiltered}
                     disabled={isPending || filteredTeams.length === 0}
                     className="px-3 py-1.5 bg-surface-color-light border border-border-color hover:border-accent-primary text-text-primary text-xs uppercase font-bold tracking-wider rounded transition-colors disabled:opacity-50 cursor-pointer"
                   >
-                    Allot Filtered ({filteredTeams.length})
+                    Select Filtered ({filteredTeams.length})
                   </button>
                   <button
                     onClick={handleClearAll}
-                    disabled={isPending || activeSpoc.assigned_team_ids.length === 0}
+                    disabled={isPending || stagedTeamIds.size === 0}
                     className="px-3 py-1.5 bg-status-error/10 border border-status-error/40 hover:bg-status-error/20 text-status-error text-xs uppercase font-bold tracking-wider rounded transition-colors disabled:opacity-50 cursor-pointer"
                   >
-                    Clear All
+                    Clear Selected
+                  </button>
+                  {hasUnsavedChanges && (
+                    <button
+                      onClick={handleResetStaged}
+                      disabled={isPending}
+                      className="px-2.5 py-1.5 text-xs text-text-secondary hover:text-text-primary underline font-mono cursor-pointer"
+                    >
+                      Reset
+                    </button>
+                  )}
+                  <button
+                    onClick={handleConfirmSpocAllotment}
+                    disabled={isPending || !hasUnsavedChanges}
+                    className={`px-4 py-1.5 rounded font-tech text-xs uppercase tracking-wider font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      hasUnsavedChanges
+                        ? "bg-accent-primary text-black hover:bg-accent-primary/90 shadow-[0_0_15px_rgba(0,240,255,0.4)] animate-pulse"
+                        : "bg-surface-color-light text-text-secondary border border-border-color opacity-50 cursor-not-allowed"
+                    }`}
+                  >
+                    <Check size={14} className="stroke-[3]" />
+                    <span>Confirm Allotment ({stagedTeamIds.size})</span>
                   </button>
                 </div>
               </div>
+
+              {/* Unsaved changes notice banner */}
+              {hasUnsavedChanges && (
+                <div className="bg-accent-primary/10 border border-accent-primary/40 px-3 py-2 rounded flex items-center justify-between text-xs text-accent-primary animate-fade-in">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-accent-primary animate-ping" />
+                    <strong>{stagedTeamIds.size} team(s) selected.</strong> Click &quot;Confirm Allotment&quot; to apply changes to this SPOC.
+                  </span>
+                  <button
+                    onClick={handleConfirmSpocAllotment}
+                    disabled={isPending}
+                    className="underline font-bold uppercase tracking-wider hover:text-text-primary cursor-pointer"
+                  >
+                    Save Allotment Now
+                  </button>
+                </div>
+              )}
 
               {/* Filters for Teams */}
               <div className="flex flex-col sm:flex-row items-center gap-3">
@@ -703,7 +754,7 @@ export default function SpocClientView({
                   </div>
                 ) : (
                   filteredTeams.map((team) => {
-                    const isAssignedToThis = assignedTeamIds.has(team.id);
+                    const isAssignedToThis = stagedTeamIds.has(team.id);
                     const isAssignedToOther =
                       team.assigned_spoc_id && team.assigned_spoc_id !== activeSpoc.id;
 
