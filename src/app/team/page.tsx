@@ -15,6 +15,10 @@ import {
   UserCheck,
   Clock,
   Sparkles,
+  Phone,
+  Mail,
+  MessageCircle,
+  ExternalLink,
 } from "lucide-react";
 import { requireAuthenticatedTeamUser } from "@/lib/auth/team";
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -34,9 +38,10 @@ export default async function TeamDashboardPage() {
   let activeRound: any = null;
   let publishedResult: any = null;
   let announcements: any[] = [];
+  let assignedSpoc: any = null;
 
   try {
-    const [teamRes, membersRes, logsRes, subRes, roundRes, resultRes, annRes] =
+    const [teamRes, membersRes, logsRes, subRes, roundRes, resultRes, annRes, spocAssignRes] =
       await Promise.all([
         supabaseAdmin
           .from("teams")
@@ -69,6 +74,22 @@ export default async function TeamDashboardPage() {
           .eq("is_published", true)
           .maybeSingle(),
         getActiveAnnouncements("teams"),
+        supabaseAdmin
+          .from("team_spoc_assignments")
+          .select(`
+            spoc_id,
+            spocs (
+              id,
+              name,
+              email,
+              phone,
+              department,
+              notes,
+              avatar_url
+            )
+          `)
+          .eq("team_id", effectiveTeamId)
+          .maybeSingle(),
       ]);
 
     if (teamRes.data) teamInfo = teamRes.data;
@@ -78,6 +99,9 @@ export default async function TeamDashboardPage() {
     if (roundRes.data) activeRound = roundRes.data;
     if (resultRes.data) publishedResult = resultRes.data;
     announcements = annRes || [];
+    if (spocAssignRes.data && (spocAssignRes.data as any).spocs) {
+      assignedSpoc = (spocAssignRes.data as any).spocs;
+    }
   } catch (err) {
     console.error("Failed to load team dashboard data:", err);
   }
@@ -223,6 +247,84 @@ export default async function TeamDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Dedicated SPOC Coordinator Card */}
+      {assignedSpoc && (
+        <div className="glass-panel p-5 border border-accent-secondary/40 bg-gradient-to-r from-accent-secondary/[0.07] via-surface-color/60 to-surface-color flex flex-col md:flex-row md:items-center justify-between gap-5 rounded-lg shadow-[0_0_20px_rgba(255,0,127,0.1)]">
+          <div className="flex items-center gap-4">
+            <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-accent-secondary bg-surface-color-light flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(255,0,127,0.25)]">
+              {assignedSpoc.avatar_url ? (
+                <img
+                  src={assignedSpoc.avatar_url}
+                  alt={assignedSpoc.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="font-heading text-xl text-accent-secondary uppercase font-bold">
+                  {assignedSpoc.name.slice(0, 2)}
+                </span>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-status-success animate-pulse" />
+                <span className="text-[10px] uppercase tracking-[2px] text-accent-secondary font-bold">
+                  Your Dedicated Event SPOC
+                </span>
+              </div>
+              <h3 className="font-heading text-xl text-text-primary uppercase m-0 flex items-center gap-2">
+                {assignedSpoc.name}
+                {assignedSpoc.department && (
+                  <span className="text-xs font-mono text-accent-primary normal-case">
+                    [{assignedSpoc.department}]
+                  </span>
+                )}
+              </h3>
+              <p className="text-xs text-text-secondary m-0 font-mono">
+                Assigned coordinator for team queries, schedule assistance & live logistics.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5 pt-3 md:pt-0 border-t md:border-t-0 border-border-color/40">
+            {assignedSpoc.phone && (
+              <a
+                href={`tel:${assignedSpoc.phone}`}
+                className="px-3 py-2 bg-surface-color border border-border-color hover:border-accent-primary text-text-primary text-xs uppercase font-bold tracking-wider rounded transition-colors flex items-center gap-2"
+              >
+                <Phone size={14} className="text-accent-primary" />
+                <span>Call ({assignedSpoc.phone})</span>
+              </a>
+            )}
+
+            {assignedSpoc.phone && (
+              <a
+                href={`https://wa.me/${assignedSpoc.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
+                  `Hello ${assignedSpoc.name}, reaching out from Team "${teamInfo?.name || "Participant"}" regarding ViceVerse Ideathon.`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 bg-[#25D366] text-black text-xs uppercase font-bold tracking-wider rounded hover:bg-[#20ba59] transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(37,211,102,0.3)] cursor-pointer"
+              >
+                <MessageCircle size={15} className="stroke-[2.5]" />
+                <span>WhatsApp SPOC</span>
+                <ExternalLink size={12} />
+              </a>
+            )}
+
+            {assignedSpoc.email && (
+              <a
+                href={`mailto:${assignedSpoc.email}`}
+                className="p-2 bg-surface-color border border-border-color hover:border-accent-secondary text-text-secondary hover:text-text-primary rounded transition-colors"
+                title={assignedSpoc.email}
+              >
+                <Mail size={15} />
+              </a>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Distribution Progress Section (Identical to Ops Progress Cards) */}
       <div className="space-y-3">

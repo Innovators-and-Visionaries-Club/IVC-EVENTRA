@@ -11,6 +11,7 @@ export interface SpocItem {
   phone: string | null;
   department: string | null;
   notes: string | null;
+  avatar_url?: string | null;
   created_at: string;
   assigned_team_ids: string[];
 }
@@ -80,6 +81,7 @@ export async function getSpocPortalData(): Promise<SpocPortalData> {
       phone: s.phone,
       department: s.department,
       notes: s.notes,
+      avatar_url: s.avatar_url || null,
       created_at: s.created_at,
       assigned_team_ids: spocToTeams.get(s.id) || [],
     }));
@@ -113,6 +115,7 @@ export async function createSpoc(data: {
   phone?: string;
   department?: string;
   notes?: string;
+  avatar_url?: string;
 }) {
   const { user } = await requireAdmin();
 
@@ -129,6 +132,7 @@ export async function createSpoc(data: {
         phone: data.phone?.trim() || null,
         department: data.department?.trim() || null,
         notes: data.notes?.trim() || null,
+        avatar_url: data.avatar_url?.trim() || null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       },
@@ -153,6 +157,7 @@ export async function createSpoc(data: {
   ]);
 
   revalidatePath("/admin/spoc");
+  revalidatePath("/team");
   return newSpoc;
 }
 
@@ -164,19 +169,26 @@ export async function updateSpoc(data: {
   phone?: string;
   department?: string;
   notes?: string;
+  avatar_url?: string;
 }) {
   const { user } = await requireAdmin();
 
+  const updatePayload: Record<string, any> = {
+    name: data.name.trim(),
+    email: data.email?.trim() || null,
+    phone: data.phone?.trim() || null,
+    department: data.department?.trim() || null,
+    notes: data.notes?.trim() || null,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (data.avatar_url !== undefined) {
+    updatePayload.avatar_url = data.avatar_url ? data.avatar_url.trim() : null;
+  }
+
   const { data: updatedSpoc, error } = await supabaseAdmin
     .from("spocs")
-    .update({
-      name: data.name.trim(),
-      email: data.email?.trim() || null,
-      phone: data.phone?.trim() || null,
-      department: data.department?.trim() || null,
-      notes: data.notes?.trim() || null,
-      updated_at: new Date().toISOString(),
-    })
+    .update(updatePayload)
     .eq("id", data.id)
     .select()
     .single();
@@ -198,7 +210,60 @@ export async function updateSpoc(data: {
   ]);
 
   revalidatePath("/admin/spoc");
+  revalidatePath("/team");
   return updatedSpoc;
+}
+
+// 3b. Upload SPOC Avatar Image
+export async function uploadSpocAvatar(formData: FormData) {
+  await requireAdmin();
+
+  const file = formData.get("file") as File | null;
+  if (!file) {
+    throw new Error("No image file provided for upload");
+  }
+
+  const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"];
+  if (file.type && !allowedTypes.includes(file.type)) {
+    throw new Error("Only image files (JPG, PNG, WebP, GIF, SVG) are allowed.");
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    throw new Error("Avatar image must not exceed 5MB.");
+  }
+
+  const bucketName = "spoc-avatars";
+  const { data: bucketData, error: bucketError } = await supabaseAdmin.storage.getBucket(bucketName);
+  if (bucketError || !bucketData) {
+    await supabaseAdmin.storage.createBucket(bucketName, {
+      public: true,
+      fileSizeLimit: 10485760,
+    });
+  }
+
+  const cleanFileName = (file.name || "avatar.jpg").replace(/[^a-zA-Z0-9._-]/g, "_");
+  const filePath = `avatars/${Date.now()}_${cleanFileName}`;
+  const arrayBuffer = await file.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+
+  const { error: uploadError } = await supabaseAdmin.storage
+    .from(bucketName)
+    .upload(filePath, buffer, {
+      contentType: file.type || "image/jpeg",
+      upsert: true,
+    });
+
+  if (uploadError) {
+    const base64 = buffer.toString("base64");
+    const mime = file.type || "image/jpeg";
+    return { avatarUrl: `data:${mime};base64,${base64}` };
+  }
+
+  const { data: publicUrlData } = supabaseAdmin.storage
+    .from(bucketName)
+    .getPublicUrl(filePath);
+
+  return { avatarUrl: publicUrlData.publicUrl };
 }
 
 // 4. Delete SPOC

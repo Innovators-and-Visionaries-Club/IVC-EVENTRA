@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useTransition, useMemo } from "react";
+import React, { useState, useTransition, useMemo, useRef } from "react";
 import {
   UserCheck,
   Search,
@@ -17,6 +17,10 @@ import {
   Shield,
   Layers,
   Sparkles,
+  Upload,
+  MessageCircle,
+  ExternalLink,
+  Camera,
 } from "lucide-react";
 import {
   SpocItem,
@@ -25,6 +29,7 @@ import {
   updateSpoc,
   deleteSpoc,
   updateSpocTeams,
+  uploadSpocAvatar,
 } from "@/app/actions/admin-spoc";
 
 interface SpocClientProps {
@@ -62,8 +67,11 @@ export default function SpocClientView({
     phone: "",
     department: "",
     notes: "",
+    avatar_url: "",
   });
   const [formLoading, setFormLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [isPending, startTransition] = useTransition();
   const [notification, setNotification] = useState<{
@@ -127,10 +135,21 @@ export default function SpocClientView({
     });
   }, [teams, teamSearch, trackFilter, selectedSpocId, showOtherAssigned]);
 
+  // Helper to format WhatsApp URL
+  const getWhatsAppLink = (phone?: string | null, name?: string) => {
+    if (!phone) return null;
+    const cleanNumber = phone.replace(/[^0-9]/g, "");
+    if (!cleanNumber) return null;
+    const text = encodeURIComponent(
+      `Hello ${name || "SPOC"}, reaching out regarding ViceVerse Ideathon coordination.`
+    );
+    return `https://wa.me/${cleanNumber}?text=${text}`;
+  };
+
   // Open Create Modal
   const handleOpenCreateModal = () => {
     setEditingSpoc(null);
-    setFormData({ name: "", email: "", phone: "", department: "", notes: "" });
+    setFormData({ name: "", email: "", phone: "", department: "", notes: "", avatar_url: "" });
     setIsModalOpen(true);
   };
 
@@ -144,8 +163,34 @@ export default function SpocClientView({
       phone: spoc.phone || "",
       department: spoc.department || "",
       notes: spoc.notes || "",
+      avatar_url: spoc.avatar_url || "",
     });
     setIsModalOpen(true);
+  };
+
+  // Handle Image File Upload
+  const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    setNotification(null);
+    try {
+      const data = new FormData();
+      data.append("file", file);
+      const res = await uploadSpocAvatar(data);
+      if (res?.avatarUrl) {
+        setFormData((prev) => ({ ...prev, avatar_url: res.avatarUrl }));
+        setNotification({ type: "success", message: "SPOC image uploaded successfully!" });
+      }
+    } catch (err: unknown) {
+      setNotification({
+        type: "error",
+        message: err instanceof Error ? err.message : "Failed to upload image.",
+      });
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   // Save SPOC (Create or Update)
@@ -185,6 +230,7 @@ export default function SpocClientView({
         phone: dataToSave.phone || null,
         department: dataToSave.department || null,
         notes: dataToSave.notes || null,
+        avatar_url: dataToSave.avatar_url || null,
         created_at: new Date().toISOString(),
         assigned_team_ids: [],
       };
@@ -198,7 +244,7 @@ export default function SpocClientView({
         const created = await createSpoc(dataToSave);
         if (created?.id) {
           setSpocs((prev) =>
-            prev.map((s) => (s.id === tempId ? { ...s, id: created.id } : s))
+            prev.map((s) => (s.id === tempId ? { ...s, id: created.id, avatar_url: created.avatar_url } : s))
           );
           setSelectedSpocId(created.id);
         }
@@ -435,31 +481,64 @@ export default function SpocClientView({
               filteredSpocs.map((s) => {
                 const isSelected = s.id === selectedSpocId;
                 const count = s.assigned_team_ids.length;
+                const waLink = getWhatsAppLink(s.phone, s.name);
 
                 return (
                   <div
                     key={s.id}
                     onClick={() => setSelectedSpocId(s.id)}
-                    className={`w-full text-left p-3.5 rounded border transition-all cursor-pointer flex items-center justify-between group ${
+                    className={`w-full text-left p-3 rounded border transition-all cursor-pointer flex items-center justify-between group ${
                       isSelected
                         ? "bg-accent-secondary/[0.06] border-accent-secondary/50 shadow-[0_0_15px_rgba(255,0,127,0.12)]"
                         : "bg-surface-color/40 border-border-color/70 hover:border-accent-secondary/40 hover:bg-surface-color"
                     }`}
                   >
-                    <div className="space-y-0.5">
-                      <p className="font-heading text-sm text-text-primary m-0 uppercase tracking-wide">
-                        {s.name}
-                      </p>
-                      {s.department && (
-                        <p className="text-[11px] text-accent-tertiary font-mono m-0">
-                          {s.department}
+                    <div className="flex items-center gap-3">
+                      {/* Avatar preview */}
+                      <div className="relative shrink-0 w-10 h-10 rounded-full overflow-hidden border border-border-color bg-surface-color-light flex items-center justify-center">
+                        {s.avatar_url ? (
+                          <img
+                            src={s.avatar_url}
+                            alt={s.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="font-heading text-sm text-accent-secondary uppercase font-bold">
+                            {s.name.slice(0, 2)}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="space-y-0.5">
+                        <p className="font-heading text-sm text-text-primary m-0 uppercase tracking-wide">
+                          {s.name}
                         </p>
-                      )}
-                      {s.phone && (
-                        <p className="text-[10px] text-text-secondary font-mono m-0">
-                          📞 {s.phone}
-                        </p>
-                      )}
+                        {s.department && (
+                          <p className="text-[11px] text-accent-tertiary font-mono m-0 truncate max-w-[150px]">
+                            {s.department}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-2">
+                          {s.phone && (
+                            <span className="text-[10px] text-text-secondary font-mono">
+                              📞 {s.phone}
+                            </span>
+                          )}
+                          {waLink && (
+                            <a
+                              href={waLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex items-center gap-1 text-[10px] text-[#25D366] hover:underline font-bold"
+                              title="Chat on WhatsApp"
+                            >
+                              <MessageCircle size={11} className="stroke-[2.5]" />
+                              <span>WhatsApp</span>
+                            </a>
+                          )}
+                        </div>
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -476,7 +555,7 @@ export default function SpocClientView({
                       {/* Action buttons */}
                       <button
                         onClick={(e) => handleOpenEditModal(s, e)}
-                        className="p-1 hover:text-accent-tertiary text-text-secondary/60 transition-colors"
+                        className="p-1 hover:text-accent-tertiary text-text-secondary/60 transition-colors cursor-pointer"
                         title="Edit SPOC"
                       >
                         <Edit2 size={13} />
@@ -486,7 +565,7 @@ export default function SpocClientView({
                           e.stopPropagation();
                           setSpocToDelete(s);
                         }}
-                        className="p-1 hover:text-status-error text-text-secondary/60 transition-colors"
+                        className="p-1 hover:text-status-error text-text-secondary/60 transition-colors cursor-pointer"
                         title="Delete SPOC"
                       >
                         <Trash2 size={13} />
@@ -504,24 +583,62 @@ export default function SpocClientView({
           {activeSpoc ? (
             <>
               {/* Active SPOC Status Bar */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border-color/60">
-                <div>
-                  <span className="font-tech text-[10px] uppercase tracking-[2px] text-accent-secondary font-bold">
-                    Active SPOC Allotment
-                  </span>
-                  <h2 className="font-heading text-xl text-text-primary uppercase m-0 flex items-center gap-2">
-                    <Shield className="w-5 h-5 text-accent-secondary" />
-                    {activeSpoc.name}
-                    {activeSpoc.department && (
-                      <span className="text-xs font-mono text-accent-primary normal-case">
-                        [{activeSpoc.department}]
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border-color/60">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-accent-secondary/60 bg-surface-color-light flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(255,0,127,0.2)]">
+                    {activeSpoc.avatar_url ? (
+                      <img
+                        src={activeSpoc.avatar_url}
+                        alt={activeSpoc.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="font-heading text-lg text-accent-secondary uppercase font-bold">
+                        {activeSpoc.name.slice(0, 2)}
                       </span>
                     )}
-                  </h2>
+                  </div>
+                  <div>
+                    <span className="font-tech text-[10px] uppercase tracking-[2px] text-accent-secondary font-bold block mb-0.5">
+                      Active SPOC Allotment Console
+                    </span>
+                    <h2 className="font-heading text-xl text-text-primary uppercase m-0 flex items-center gap-2">
+                      {activeSpoc.name}
+                      {activeSpoc.department && (
+                        <span className="text-xs font-mono text-accent-primary normal-case">
+                          [{activeSpoc.department}]
+                        </span>
+                      )}
+                    </h2>
+                    <div className="flex flex-wrap items-center gap-3 mt-1 text-xs">
+                      {activeSpoc.phone && (
+                        <span className="text-text-secondary font-mono">
+                          📞 {activeSpoc.phone}
+                        </span>
+                      )}
+                      {activeSpoc.email && (
+                        <span className="text-text-secondary font-mono">
+                          ✉️ {activeSpoc.email}
+                        </span>
+                      )}
+                      {getWhatsAppLink(activeSpoc.phone, activeSpoc.name) && (
+                        <a
+                          href={getWhatsAppLink(activeSpoc.phone, activeSpoc.name)!}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-[#25D366]/15 border border-[#25D366]/40 text-[#25D366] hover:bg-[#25D366]/25 font-bold text-[11px] transition-colors"
+                        >
+                          <MessageCircle size={13} className="stroke-[2.5]" />
+                          <span>WhatsApp Chat</span>
+                          <ExternalLink size={10} />
+                        </a>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Bulk Actions */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={handleSelectAllFiltered}
                     disabled={isPending || filteredTeams.length === 0}
@@ -737,6 +854,62 @@ export default function SpocClientView({
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="w-full px-3 py-2 bg-surface-color-light border border-border-color rounded text-xs text-text-primary focus:border-accent-secondary outline-none font-mono"
                   />
+                </div>
+              </div>
+
+              {/* SPOC Avatar / Image Upload */}
+              <div>
+                <label className="block text-xs uppercase tracking-wider text-text-secondary mb-1">
+                  Profile Photo / Avatar
+                </label>
+                <div className="flex items-center gap-3">
+                  <div className="relative w-14 h-14 rounded-full overflow-hidden border border-border-color bg-surface-color-light flex items-center justify-center shrink-0">
+                    {formData.avatar_url ? (
+                      <img
+                        src={formData.avatar_url}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Camera size={22} className="text-text-secondary/60" />
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        accept="image/*"
+                        onChange={handleImageFileChange}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingImage}
+                        className="px-3 py-1.5 bg-surface-color-light border border-border-color hover:border-accent-secondary text-text-primary text-xs uppercase font-bold tracking-wider rounded transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                      >
+                        <Upload size={13} />
+                        <span>{uploadingImage ? "Uploading..." : "Upload Image"}</span>
+                      </button>
+                      {formData.avatar_url && (
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, avatar_url: "" })}
+                          className="text-[11px] text-status-error hover:underline uppercase font-mono cursor-pointer"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      type="url"
+                      placeholder="Or paste image URL (https://...)"
+                      value={formData.avatar_url}
+                      onChange={(e) => setFormData({ ...formData, avatar_url: e.target.value })}
+                      className="w-full px-2.5 py-1.5 bg-surface-color-light border border-border-color rounded text-[11px] text-text-primary focus:border-accent-secondary outline-none font-mono"
+                    />
+                  </div>
                 </div>
               </div>
 
