@@ -467,16 +467,21 @@ export default function RoundsClientView({
                   <div
                     key={round.id}
                     onClick={() => setSelectedRoundId(round.id)}
-                    className={`p-4 rounded border transition-all cursor-pointer relative group flex flex-col gap-3 ${
+                    className={`p-4 rounded border transition-all cursor-pointer relative group flex flex-col gap-3 overflow-hidden ${
                       isSelected
-                        ? "bg-gradient-to-r from-accent-secondary/15 to-transparent border-accent-secondary shadow-[0_0_20px_rgba(255,0,127,0.2)]"
-                        : "bg-surface-color/40 border-border-color/70 hover:border-accent-secondary/50 hover:bg-surface-color"
+                        ? "bg-surface-color/80 border-accent-secondary/50 shadow-[0_0_15px_rgba(255,0,127,0.12)]"
+                        : "bg-surface-color/40 border-border-color/70 hover:border-accent-secondary/40 hover:bg-surface-color"
                     }`}
                   >
+                    {/* Ultra-subtle background tint layered to back */}
+                    {isSelected && (
+                      <div className="absolute inset-0 bg-gradient-to-r from-accent-secondary/[0.06] via-accent-secondary/[0.02] to-transparent pointer-events-none -z-0" />
+                    )}
+
                     {/* Header Row */}
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start justify-between gap-3 relative z-10">
                       <div className="flex items-start gap-2.5">
-                        <span className="px-2 py-0.5 bg-accent-secondary/20 border border-accent-secondary/40 text-accent-secondary text-[10px] font-mono font-bold uppercase shrink-0 mt-0.5">
+                        <span className="px-2 py-0.5 bg-accent-secondary/10 border border-accent-secondary/30 text-accent-secondary text-[10px] font-mono font-bold uppercase shrink-0 mt-0.5">
                           SEQ #{round.sequence_order}
                         </span>
                         <div>

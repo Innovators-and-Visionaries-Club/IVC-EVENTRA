@@ -418,8 +418,8 @@ export default function SpocClientView({
                     onClick={() => setSelectedSpocId(s.id)}
                     className={`w-full text-left p-3.5 rounded border transition-all cursor-pointer flex items-center justify-between group ${
                       isSelected
-                        ? "bg-accent-secondary/15 border-accent-secondary shadow-[0_0_15px_rgba(255,0,127,0.2)]"
-                        : "bg-surface-color/40 border-border-color/70 hover:border-accent-secondary/50 hover:bg-surface-color"
+                        ? "bg-accent-secondary/[0.06] border-accent-secondary/50 shadow-[0_0_15px_rgba(255,0,127,0.12)]"
+                        : "bg-surface-color/40 border-border-color/70 hover:border-accent-secondary/40 hover:bg-surface-color"
                     }`}
                   >
                     <div className="space-y-0.5">
