@@ -19,6 +19,8 @@ import {
   User,
   ShieldCheck,
   LucideIcon,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import {
   UserProfileItem,
@@ -26,10 +28,12 @@ import {
   updateUserRole,
   createUser,
   deleteUser,
+  TeamHierarchyItem,
 } from "@/app/actions/admin-users";
 
 interface UsersClientProps {
   initialUsers: UserProfileItem[];
+  initialTeamsHierarchy?: TeamHierarchyItem[];
   currentUserEmail?: string;
   currentUserId?: string;
 }
@@ -72,6 +76,7 @@ const roleBadges: Record<
 
 const filterTabs = [
   { id: "all", label: "All Users" },
+  { id: "teams", label: "Teams & Members" },
   { id: "participant", label: "Participants" },
   { id: "leader", label: "Team Leaders" },
   { id: "judge", label: "Judges" },
@@ -81,6 +86,7 @@ const filterTabs = [
 
 export default function UsersClientView({
   initialUsers,
+  initialTeamsHierarchy = [],
   currentUserId,
 }: UsersClientProps) {
   const router = useRouter();
@@ -90,7 +96,25 @@ export default function UsersClientView({
   const [activeTab, setActiveTab] = useState<string>(initialRoleParam);
   const [searchQuery, setSearchQuery] = useState("");
   const [usersList, setUsersList] = useState<UserProfileItem[]>(initialUsers);
+  const [teamsHierarchy, setTeamsHierarchy] = useState<TeamHierarchyItem[]>(initialTeamsHierarchy);
+  const [expandedTeams, setExpandedTeams] = useState<Record<string, boolean>>({});
   const [isPending, startTransition] = useTransition();
+
+  // Toggle tree expansion
+  const toggleTeamExpand = (teamId: string) => {
+    setExpandedTeams((prev) => ({
+      ...prev,
+      [teamId]: prev[teamId] === undefined ? false : !prev[teamId], // default expanded unless toggled
+    }));
+  };
+
+  const isTeamExpanded = (teamId: string) => {
+    return expandedTeams[teamId] !== false; // expanded by default
+  };
+
+  React.useEffect(() => {
+    setTeamsHierarchy(initialTeamsHierarchy);
+  }, [initialTeamsHierarchy]);
 
   React.useEffect(() => {
     const roleParam = searchParams.get("role") || "all";
@@ -155,6 +179,28 @@ export default function UsersClientView({
       return true;
     });
   }, [usersList, activeTab, searchQuery]);
+
+  // Filtered Teams List
+  const filteredTeams = useMemo(() => {
+    if (activeTab !== "teams") return [];
+    if (!searchQuery.trim()) return teamsHierarchy;
+    const q = searchQuery.toLowerCase();
+    return teamsHierarchy.filter((t) => {
+      const matchName = t.name.toLowerCase().includes(q);
+      const matchCode = t.code.toLowerCase().includes(q);
+      const matchTrack = t.track?.toLowerCase().includes(q);
+      const matchLeader =
+        t.leader?.full_name?.toLowerCase().includes(q) ||
+        t.leader?.email.toLowerCase().includes(q) ||
+        t.leader_name?.toLowerCase().includes(q);
+      const matchMember = t.members.some(
+        (m) =>
+          m.full_name?.toLowerCase().includes(q) ||
+          m.email.toLowerCase().includes(q)
+      );
+      return matchName || matchCode || matchTrack || matchLeader || matchMember;
+    });
+  }, [teamsHierarchy, activeTab, searchQuery]);
 
   // Role Update Handler
   const handleRoleChange = async (userId: string, newRole: AllowedUserRole) => {
@@ -323,8 +369,175 @@ export default function UsersClientView({
         </div>
       </div>
 
-      {/* Users Data Table */}
-      <div className="glass-panel p-0 overflow-hidden border border-border-color">
+      {/* View Content: Either Teams Hierarchy or Users Data Table */}
+      {activeTab === "teams" ? (
+        <div className="space-y-4">
+          {filteredTeams.length === 0 ? (
+            <div className="glass-panel p-12 text-center border border-border-color">
+              <Users className="w-10 h-10 text-text-secondary mx-auto mb-3 opacity-40" />
+              <p className="text-text-secondary font-tech text-sm uppercase tracking-wider m-0">
+                No teams found matching search criteria.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-6">
+              {filteredTeams.map((team) => {
+                const expanded = isTeamExpanded(team.id);
+                return (
+                  <div
+                    key={team.id}
+                    className="glass-panel p-0 border border-border-color hover:border-accent-secondary/50 transition-all rounded bg-surface-color/40 overflow-hidden"
+                  >
+                    {/* Expandable Team Top Header */}
+                    <div
+                      onClick={() => toggleTeamExpand(team.id)}
+                      className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer select-none bg-surface-color-light/30 hover:bg-surface-color-light/60 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          className="p-1 rounded hover:bg-surface-color text-text-secondary hover:text-text-primary transition-colors"
+                          aria-label={expanded ? "Collapse team" : "Expand team"}
+                        >
+                          {expanded ? (
+                            <ChevronDown size={18} className="text-accent-secondary" />
+                          ) : (
+                            <ChevronRight size={18} className="text-text-secondary" />
+                          )}
+                        </button>
+
+                        <div className="w-9 h-9 rounded bg-accent-primary/10 border border-accent-primary/30 flex items-center justify-center font-heading text-accent-primary font-bold">
+                          {team.name.charAt(0).toUpperCase()}
+                        </div>
+
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-heading text-base text-text-primary tracking-wide m-0">
+                              {team.name}
+                            </h3>
+                            <span className="font-mono text-xs px-2 py-0.5 bg-surface-color border border-border-color text-accent-secondary uppercase font-bold">
+                              #{team.code}
+                            </span>
+                          </div>
+                          {team.track && (
+                            <p className="font-tech text-xs text-text-secondary uppercase tracking-wider m-0 mt-0.5">
+                              Track: <span className="text-accent-primary">{team.track}</span>
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        {team.leader && (
+                          <div className="hidden md:flex items-center gap-1.5 px-2 py-1 bg-accent-primary/10 border border-accent-primary/30 text-accent-primary text-xs font-tech">
+                            <Crown size={12} />
+                            <span>Leader: {team.leader.full_name || team.leader.email}</span>
+                          </div>
+                        )}
+                        <span className="font-tech text-xs uppercase px-2.5 py-1 bg-surface-color-light border border-border-color text-text-secondary">
+                          Roster: <strong className="text-text-primary">{team.totalMembersCount}</strong>
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Expandable Body: Leader & Members Tree */}
+                    {expanded && (
+                      <div className="p-5 border-t border-border-color/60 space-y-4 animate-fade-in">
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+                          {/* Team Leader Box */}
+                          <div className="lg:col-span-5 bg-accent-primary/5 border border-accent-primary/30 rounded p-4 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 bg-accent-primary text-black font-tech font-bold text-[10px] uppercase tracking-wider px-2 py-0.5 flex items-center gap-1">
+                              <Crown size={12} />
+                              Team Leader
+                            </div>
+
+                            <p className="font-tech text-[10px] text-accent-primary uppercase tracking-widest font-bold mb-3 m-0">
+                              Designated Leader
+                            </p>
+
+                            {team.leader ? (
+                              <div className="flex items-start gap-3">
+                                <div className="w-9 h-9 rounded bg-accent-primary/20 border border-accent-primary/40 flex items-center justify-center font-heading text-accent-primary font-bold text-sm shrink-0">
+                                  {team.leader.full_name ? team.leader.full_name.charAt(0).toUpperCase() : "L"}
+                                </div>
+                                <div className="min-w-0">
+                                  <h4 className="font-heading text-sm text-text-primary truncate m-0 font-bold">
+                                    {team.leader.full_name || team.leader_name || "Team Leader"}
+                                  </h4>
+                                  <p className="text-xs text-text-secondary truncate m-0 flex items-center gap-1.5 mt-0.5">
+                                    <Mail size={12} className="text-accent-primary/70 shrink-0" />
+                                    <span className="truncate">{team.leader.email}</span>
+                                  </p>
+                                  <span className="inline-block mt-2 font-mono text-[10px] px-2 py-0.5 bg-accent-primary/20 text-accent-primary border border-accent-primary/30 uppercase">
+                                    Primary Contact
+                                  </span>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-xs text-text-secondary italic py-2">
+                                {team.leader_name ? (
+                                  <div>
+                                    <p className="text-text-primary font-bold m-0">{team.leader_name}</p>
+                                    <span className="text-[11px] text-text-secondary">(Leader profile not yet registered)</span>
+                                  </div>
+                                ) : (
+                                  "No designated leader assigned"
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Team Members Box */}
+                          <div className="lg:col-span-7 bg-surface-color/60 border border-border-color rounded p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <p className="font-tech text-[10px] text-text-secondary uppercase tracking-widest font-bold m-0 flex items-center gap-1.5">
+                                <Users size={12} className="text-accent-secondary" />
+                                Team Members ({team.members.length})
+                              </p>
+                            </div>
+
+                            {team.members.length === 0 ? (
+                              <div className="text-xs text-text-secondary italic py-2">
+                                No additional team members enrolled yet.
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                {team.members.map((member) => (
+                                  <div
+                                    key={member.id}
+                                    className="p-2.5 bg-surface-color-light/40 border border-border-color/80 rounded flex items-center gap-2.5 hover:border-accent-secondary/40 transition-colors"
+                                  >
+                                    <div className="w-7 h-7 rounded bg-surface-color border border-border-color flex items-center justify-center font-heading text-xs text-text-secondary shrink-0 uppercase">
+                                      {member.full_name ? member.full_name.charAt(0) : "M"}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="font-medium text-xs text-text-primary truncate m-0">
+                                        {member.full_name || "Member"}
+                                      </p>
+                                      <p className="text-[11px] text-text-secondary truncate m-0">
+                                        {member.email}
+                                      </p>
+                                    </div>
+                                    <span className="text-[9px] font-mono px-1.5 py-0.5 bg-surface-color border border-border-color text-text-secondary uppercase shrink-0">
+                                      Member
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      ) : (
+        /* Users Data Table */
+        <div className="glass-panel p-0 overflow-hidden border border-border-color">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -453,6 +666,7 @@ export default function UsersClientView({
           </table>
         </div>
       </div>
+      )}
 
       {/* ADD USER MODAL */}
       {isAddModalOpen && (

@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { getUsersList, UserProfileItem } from "@/app/actions/admin-users";
+import { getUsersList, getTeamsHierarchyData, UserProfileItem, TeamHierarchyItem } from "@/app/actions/admin-users";
 import UsersClientView from "./users-client";
 import { Loader2 } from "lucide-react";
 
@@ -13,10 +13,17 @@ export default async function AdminUsersPage() {
   } = await supabase.auth.getUser();
 
   let initialUsers: UserProfileItem[] = [];
+  let initialTeamsHierarchy: TeamHierarchyItem[] = [];
+
   try {
-    initialUsers = await getUsersList();
+    const [usersRes, teamsRes] = await Promise.all([
+      getUsersList(),
+      getTeamsHierarchyData(),
+    ]);
+    initialUsers = usersRes;
+    initialTeamsHierarchy = teamsRes;
   } catch (err) {
-    console.error("Failed to load initial users:", err);
+    console.error("Failed to load initial users/teams:", err);
   }
 
   return (
@@ -34,6 +41,7 @@ export default async function AdminUsersPage() {
       >
         <UsersClientView
           initialUsers={initialUsers}
+          initialTeamsHierarchy={initialTeamsHierarchy}
           currentUserEmail={user?.email}
           currentUserId={user?.id}
         />

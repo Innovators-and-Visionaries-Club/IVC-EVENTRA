@@ -16,6 +16,124 @@ export interface UserProfileItem {
   team_role?: string | null;
 }
 
+export interface MemberHierarchyItem {
+  id: string;
+  user_id: string;
+  role: "leader" | "member";
+  name: string | null;
+  email: string | null;
+  created_at?: string;
+}
+
+export interface TeamHierarchyItem {
+  id: string;
+  name: string;
+  code?: string | null;
+  track?: string | null;
+  leader_name?: string | null;
+  leader?: MemberHierarchyItem | null;
+  members: MemberHierarchyItem[];
+  totalMembersCount: number;
+}
+
+export async function getTeamsHierarchyData(): Promise<TeamHierarchyItem[]> {
+  try {
+    await requireAdmin();
+  } catch (e) {
+    console.warn("getTeamsHierarchyData auth check skipped or failed:", e);
+    return [];
+  }
+
+  const fetchTeams = async (): Promise<TeamHierarchyItem[]> => {
+    // 1. Fetch teams
+    const { data: teams, error: teamsErr } = await supabaseAdmin
+      .from("teams")
+      .select("id, name, code, track, leader_name")
+      .order("name", { ascending: true });
+
+    if (teamsErr || !teams) {
+      console.error("Failed to fetch teams:", teamsErr?.message);
+      return [];
+    }
+
+    // 2. Fetch team members with profile details
+    const { data: rawMembers, error: membersErr } = await supabaseAdmin
+      .from("team_members")
+      .select(`
+        id,
+        team_id,
+        user_id,
+        role,
+        name,
+        email,
+        joined_at,
+        profiles (
+          id,
+          full_name,
+          email
+        )
+      `);
+
+    if (membersErr) {
+      console.warn("Notice when fetching team members:", membersErr.message);
+    }
+
+    // Group members by team_id
+    const teamMembersMap = new Map<string, MemberHierarchyItem[]>();
+
+    ((rawMembers as any[]) || []).forEach((rm) => {
+      const profile = Array.isArray(rm.profiles) ? rm.profiles[0] : rm.profiles;
+      const memberItem: MemberHierarchyItem = {
+        id: rm.id,
+        user_id: rm.user_id,
+        role: rm.role === "leader" ? "leader" : "member",
+        name: profile?.full_name || rm.name || "Unknown Member",
+        email: profile?.email || rm.email || null,
+        created_at: rm.joined_at,
+      };
+
+      if (!teamMembersMap.has(rm.team_id)) {
+        teamMembersMap.set(rm.team_id, []);
+      }
+      teamMembersMap.get(rm.team_id)!.push(memberItem);
+    });
+
+    return teams.map((team) => {
+      const allMembers = teamMembersMap.get(team.id) || [];
+      const leader =
+        allMembers.find((m) => m.role === "leader") ||
+        (team.leader_name
+          ? {
+              id: `leader-${team.id}`,
+              user_id: "",
+              role: "leader" as const,
+              name: team.leader_name,
+              email: null,
+            }
+          : null);
+
+      const otherMembers = allMembers.filter((m) => m !== leader);
+
+      return {
+        id: team.id,
+        name: team.name,
+        code: team.code,
+        track: team.track,
+        leader_name: team.leader_name,
+        leader,
+        members: otherMembers,
+        totalMembersCount: (leader ? 1 : 0) + otherMembers.length,
+      };
+    });
+  };
+
+  const timeoutPromise = new Promise<TeamHierarchyItem[]>((resolve) =>
+    setTimeout(() => resolve([]), 3000)
+  );
+
+  return Promise.race([fetchTeams(), timeoutPromise]);
+}
+
 export async function getUsersList(params?: {
   role?: string;
   search?: string;
