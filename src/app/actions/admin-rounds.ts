@@ -87,6 +87,65 @@ export async function updateRoundStatus(roundId: string, status: RoundStatus) {
   return round;
 }
 
+export async function updateRound(roundId: string, data: { title: string; sequence_order: number; status: RoundStatus }) {
+  const { user } = await requireAdmin();
+
+  const { data: round, error } = await supabaseAdmin
+    .from("evaluation_rounds")
+    .update({
+      title: data.title,
+      sequence_order: data.sequence_order,
+      status: data.status,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", roundId)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to update round: ${error.message}`);
+  }
+
+  await supabaseAdmin.from("audit_logs").insert([
+    {
+      action: "UPDATE_EVALUATION_ROUND",
+      entity_type: "evaluation_round",
+      entity_id: roundId,
+      admin_id: user.id,
+      details: data,
+      created_at: new Date().toISOString(),
+    },
+  ]);
+
+  return round;
+}
+
+export async function deleteRound(roundId: string) {
+  const { user } = await requireAdmin();
+
+  const { error } = await supabaseAdmin
+    .from("evaluation_rounds")
+    .delete()
+    .eq("id", roundId);
+
+  if (error) {
+    throw new Error(`Failed to delete round: ${error.message}`);
+  }
+
+  await supabaseAdmin.from("audit_logs").insert([
+    {
+      action: "DELETE_EVALUATION_ROUND",
+      entity_type: "evaluation_round",
+      entity_id: roundId,
+      admin_id: user.id,
+      details: { round_id: roundId },
+      created_at: new Date().toISOString(),
+    },
+  ]);
+
+  return { success: true };
+}
+
 export async function createCriterion(data: CriterionInput) {
   const { user } = await requireAdmin();
   const validated = CriterionSchema.parse(data);
