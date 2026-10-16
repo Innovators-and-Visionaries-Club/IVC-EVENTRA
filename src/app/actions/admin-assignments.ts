@@ -17,6 +17,7 @@ export interface TeamOption {
   code?: string | null;
   track?: string | null;
   assigned_judge_ids: string[];
+  assigned_judge_names?: string[];
 }
 
 export interface JudgeAssignmentsData {
@@ -63,6 +64,11 @@ export async function getJudgeAssignmentsData(): Promise<JudgeAssignmentsData> {
       teamToJudges.get(a.team_id)!.push(a.judge_id);
     }
 
+    const judgeNameMap = new Map<string, string>();
+    (judgesRes.data || []).forEach((j) => {
+      judgeNameMap.set(j.id, j.full_name || j.email || "Judge");
+    });
+
     const judges: JudgeOption[] = (judgesRes.data || []).map((j) => ({
       id: j.id,
       full_name: j.full_name,
@@ -70,13 +76,17 @@ export async function getJudgeAssignmentsData(): Promise<JudgeAssignmentsData> {
       assigned_team_ids: judgeToTeams.get(j.id) || [],
     }));
 
-    const teams: TeamOption[] = (teamsRes.data || []).map((t) => ({
-      id: t.id,
-      name: t.name,
-      code: t.code,
-      track: t.track,
-      assigned_judge_ids: teamToJudges.get(t.id) || [],
-    }));
+    const teams: TeamOption[] = (teamsRes.data || []).map((t) => {
+      const jIds = teamToJudges.get(t.id) || [];
+      return {
+        id: t.id,
+        name: t.name,
+        code: t.code,
+        track: t.track,
+        assigned_judge_ids: jIds,
+        assigned_judge_names: jIds.map((id) => judgeNameMap.get(id) || "Judge"),
+      };
+    });
 
     return { judges, teams };
   };

@@ -80,10 +80,26 @@ export default function AssignmentsClientView({
     });
   }, [judges, judgeSearch]);
 
-  // Filtered teams
+  // Filter & view mode state
+  const [showOtherAssigned, setShowOtherAssigned] = useState(false);
+
+  // Filtered teams:
+  // A team is available for this judge if:
+  // 1) It is currently assigned to this judge (so they can unassign it)
+  // 2) OR it is not assigned to ANY other judge (assigned_judge_ids is empty)
+  // If showOtherAssigned is checked, all teams are shown with assignment badges.
   const filteredTeams = useMemo(() => {
     return teams.filter((t) => {
       if (trackFilter !== "all" && t.track !== trackFilter) return false;
+
+      // Exclusion rule: If team is already assigned to a DIFFERENT judge, hide unless showOtherAssigned is true
+      const assignedToOther = t.assigned_judge_ids.some((id) => id !== selectedJudgeId);
+      const assignedToThis = t.assigned_judge_ids.includes(selectedJudgeId);
+
+      if (!showOtherAssigned && assignedToOther && !assignedToThis) {
+        return false;
+      }
+
       const q = teamSearch.toLowerCase().trim();
       if (!q) return true;
       return (
@@ -91,14 +107,27 @@ export default function AssignmentsClientView({
         t.code?.toLowerCase().includes(q)
       );
     });
-  }, [teams, teamSearch, trackFilter]);
+  }, [teams, teamSearch, trackFilter, selectedJudgeId, showOtherAssigned]);
 
   // Toggle team assignment for active judge
-  const handleToggleTeam = (teamId: string) => {
+  const handleToggleTeam = (team: TeamOption) => {
     if (!activeJudge) return;
 
+    const teamId = team.id;
+    const isAssignedToOther = team.assigned_judge_ids.some((id) => id !== activeJudge.id);
+
+    // If assigned to another judge and not currently assigned to this judge, prompt or block
+    if (isAssignedToOther && !activeJudge.assigned_team_ids.includes(teamId)) {
+      const otherNames = (team.assigned_judge_names || []).join(", ");
+      const confirmReassign = window.confirm(
+        `This team is already assigned to ${otherNames || "another judge"}. Do you want to reassign this team exclusively to ${activeJudge.full_name || "this judge"}?`
+      );
+      if (!confirmReassign) return;
+    }
+
     const currentIds = new Set(activeJudge.assigned_team_ids);
-    if (currentIds.has(teamId)) {
+    const wasAssigned = currentIds.has(teamId);
+    if (wasAssigned) {
       currentIds.delete(teamId);
     } else {
       currentIds.add(teamId);
@@ -107,20 +136,40 @@ export default function AssignmentsClientView({
 
     // Optimistically update
     setJudges((prev) =>
-      prev.map((j) =>
-        j.id === activeJudge.id ? { ...j, assigned_team_ids: nextArray } : j
-      )
+      prev.map((j) => {
+        if (j.id === activeJudge.id) {
+          return { ...j, assigned_team_ids: nextArray };
+        }
+        // If reassigning from another judge, remove from that judge
+        if (!wasAssigned && j.assigned_team_ids.includes(teamId)) {
+          return {
+            ...j,
+            assigned_team_ids: j.assigned_team_ids.filter((id) => id !== teamId),
+          };
+        }
+        return j;
+      })
     );
+
     setTeams((prev) =>
       prev.map((t) => {
         if (t.id === teamId) {
-          const jSet = new Set(t.assigned_judge_ids);
-          if (nextArray.includes(teamId)) {
-            jSet.add(activeJudge.id);
+          if (wasAssigned) {
+            return {
+              ...t,
+              assigned_judge_ids: t.assigned_judge_ids.filter((id) => id !== activeJudge.id),
+              assigned_judge_names: (t.assigned_judge_names || []).filter(
+                (n) => n !== (activeJudge.full_name || activeJudge.email)
+              ),
+            };
           } else {
-            jSet.delete(activeJudge.id);
+            // Exclusively assigned to this judge
+            return {
+              ...t,
+              assigned_judge_ids: [activeJudge.id],
+              assigned_judge_names: [activeJudge.full_name || activeJudge.email || "Judge"],
+            };
           }
-          return { ...t, assigned_judge_ids: Array.from(jSet) };
         }
         return t;
       })
@@ -135,7 +184,9 @@ export default function AssignmentsClientView({
         });
         setNotification({
           type: "success",
-          message: `Assignments updated for ${activeJudge.full_name || "judge"}.`,
+          message: wasAssigned
+            ? `Unassigned ${team.name} from ${activeJudge.full_name || "judge"}.`
+            : `Assigned ${team.name} exclusively to ${activeJudge.full_name || "judge"}.`,
         });
       } catch (err: unknown) {
         setNotification({
@@ -335,7 +386,7 @@ export default function AssignmentsClientView({
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
                   <input
                     type="text"
-                    placeholder="Search teams by name or code..."
+                    placeholder="Search available teams by name or code..."
                     value={teamSearch}
                     onChange={(e) => setTeamSearch(e.target.value)}
                     className="w-full pl-9 pr-3 py-2 bg-surface-color border border-border-color rounded text-xs text-text-primary placeholder:text-text-secondary/60 focus:border-accent-primary outline-none font-mono"
@@ -348,33 +399,51 @@ export default function AssignmentsClientView({
                   onChange={(e) => setTrackFilter(e.target.value)}
                   className="bg-surface-color border border-border-color rounded text-xs text-text-primary px-3 py-2 font-mono outline-none focus:border-accent-primary uppercase"
                 >
-                  <option value="all">All Tracks ({teams.length})</option>
+                  <option value="all">All Tracks</option>
                   {tracks.map((tr) => (
                     <option key={tr} value={tr}>
                       Track: {tr}
                     </option>
                   ))}
                 </select>
+
+                {/* Show All Toggle */}
+                <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-text-secondary hover:text-text-primary shrink-0 px-2 py-1 bg-surface-color/40 border border-border-color rounded">
+                  <input
+                    type="checkbox"
+                    checked={showOtherAssigned}
+                    onChange={(e) => setShowOtherAssigned(e.target.checked)}
+                    className="accent-accent-secondary cursor-pointer"
+                  />
+                  <span>Show already allotted</span>
+                </label>
               </div>
 
               {/* Teams Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-y-auto max-h-[580px] pr-1">
                 {filteredTeams.length === 0 ? (
                   <div className="sm:col-span-2 p-10 text-center text-text-secondary text-xs">
-                    No teams match your search filters.
+                    No unassigned teams available for allotment. All teams are allocated or filtered.
                   </div>
                 ) : (
                   filteredTeams.map((team) => {
-                    const isAssigned = assignedTeamIds.has(team.id);
-                    const judgeCount = team.assigned_judge_ids.length;
+                    const isAssignedToThis = assignedTeamIds.has(team.id);
+                    const isAssignedToOther = team.assigned_judge_ids.some(
+                      (id) => id !== activeJudge.id
+                    );
+                    const otherJudgeNames = isAssignedToOther
+                      ? (team.assigned_judge_names || []).join(", ")
+                      : "";
 
                     return (
                       <div
                         key={team.id}
-                        onClick={() => handleToggleTeam(team.id)}
+                        onClick={() => handleToggleTeam(team)}
                         className={`p-3.5 rounded border transition-all cursor-pointer flex items-center justify-between ${
-                          isAssigned
+                          isAssignedToThis
                             ? "bg-gradient-to-r from-accent-primary/15 to-transparent border-accent-primary shadow-[0_0_15px_rgba(0,240,255,0.15)]"
+                            : isAssignedToOther
+                            ? "bg-surface-color/20 border-status-warning/40 opacity-75 hover:opacity-100"
                             : "bg-surface-color/40 border-border-color/70 hover:border-accent-primary/40 hover:bg-surface-color"
                         }`}
                       >
@@ -396,22 +465,40 @@ export default function AssignmentsClientView({
                                 [{team.track}]
                               </span>
                             )}
-                            <span>•</span>
-                            <span>
-                              {judgeCount} {judgeCount === 1 ? "judge" : "judges"} total
-                            </span>
+                            {isAssignedToOther && (
+                              <>
+                                <span>•</span>
+                                <span className="text-status-warning font-semibold">
+                                  Allotted to: {otherJudgeNames || "Other Judge"}
+                                </span>
+                              </>
+                            )}
+                            {!isAssignedToOther && !isAssignedToThis && (
+                              <>
+                                <span>•</span>
+                                <span className="text-status-success font-semibold">
+                                  Available for Allotment
+                                </span>
+                              </>
+                            )}
                           </div>
                         </div>
 
                         {/* Checkbox indicator */}
                         <div
                           className={`w-6 h-6 rounded flex items-center justify-center border transition-all ${
-                            isAssigned
+                            isAssignedToThis
                               ? "bg-accent-primary border-accent-primary text-black"
+                              : isAssignedToOther
+                              ? "border-status-warning/60 bg-status-warning/10 text-status-warning text-xs font-bold"
                               : "border-border-color/80 bg-surface-color/60 text-transparent"
                           }`}
                         >
-                          <Check size={14} className="stroke-[3]" />
+                          {isAssignedToThis ? (
+                            <Check size={14} className="stroke-[3]" />
+                          ) : isAssignedToOther ? (
+                            "!"
+                          ) : null}
                         </div>
                       </div>
                     );
