@@ -19,19 +19,27 @@ export default function Sidebar() {
 
   return (
     <aside className="w-full md:w-[280px] bg-surface-color md:border-r border-b md:border-b-0 border-border-color flex flex-col justify-between py-6 md:sticky top-0 md:h-screen z-10">
-      <div className="px-6 pb-6 border-b border-border-color">
-        <div className="flex items-center gap-4">
+      <div className="px-6 pb-6 border-b border-border-color flex flex-col items-center text-center">
+        {/* Top Center Logo */}
+        <div className="mb-3.5 relative flex items-center justify-center">
           <Image
-            src="/Vice_verse_logo.png"
-            alt="Vice Verse Logo"
-            width={80}
-            height={80}
-            style={{ width: '80px', height: 'auto', objectFit: 'contain', filter: 'drop-shadow(0 0 10px rgba(251, 200, 21, 0.3))' }}
+            src="/ivc-gear-logo.png"
+            alt="Innovators & Visionaries Club Logo"
+            width={72}
+            height={72}
+            priority
+            className="w-[72px] h-[72px] object-contain drop-shadow-[0_0_15px_rgba(255,0,127,0.35)] hover:scale-105 transition-transform"
           />
-          <div>
-            <h2 className="font-heading text-[1.8rem] tracking-[2px] m-0 text-text-primary uppercase animate-flicker">Vice Verse Admin</h2>
-            <p className="font-tech text-xs text-accent-secondary m-0 font-bold tracking-[1px] uppercase">Version 1.0</p>
-          </div>
+        </div>
+
+        {/* Portal Heading Below Logo */}
+        <div className="flex flex-col items-center">
+          <h2 className="font-heading text-[1.4rem] tracking-[2px] m-0 text-text-primary uppercase animate-flicker leading-tight">
+            Vice Verse Portal
+          </h2>
+          <p className="font-tech text-xs text-accent-secondary m-0 font-bold tracking-[1.5px] uppercase mt-1">
+            Ideathon Console
+          </p>
         </div>
       </div>
 

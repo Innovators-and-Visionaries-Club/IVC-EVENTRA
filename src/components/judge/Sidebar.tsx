@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   Gavel,
@@ -41,23 +42,36 @@ export default function JudgeSidebar() {
     <aside className="w-full md:w-[280px] bg-[#0c0c14] md:border-r border-b md:border-b-0 border-border-color flex flex-col justify-between py-6 md:sticky top-0 md:h-screen z-20 font-tech">
       {/* Brand Header */}
       <div>
-        <div className="px-6 pb-6 border-b border-border-color">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-accent-primary/15 border border-accent-primary/40 rounded flex items-center justify-center">
-              <Gavel className="text-accent-primary w-6 h-6" />
-            </div>
-            <div className="overflow-hidden">
-              <h2 className="font-heading text-lg tracking-[2px] m-0 text-text-primary uppercase truncate">
-                ViceVerse
+        <div className="px-6 pb-6 border-b border-border-color flex flex-col items-center text-center">
+          {/* Top Center Logo */}
+          <div className="mb-3.5 relative flex items-center justify-center">
+            <Image
+              src="/ivc-gear-logo.png"
+              alt="Innovators & Visionaries Club Logo"
+              width={72}
+              height={72}
+              priority
+              className="w-[72px] h-[72px] object-contain drop-shadow-[0_0_15px_rgba(0,240,255,0.35)] hover:scale-105 transition-transform"
+            />
+          </div>
+
+          {/* Respective Portal Heading Below Logo */}
+          <div className="flex flex-col items-center">
+            <div className="flex items-center gap-2">
+              <span className="p-1 bg-accent-primary/15 border border-accent-primary/40 rounded">
+                <Gavel className="text-accent-primary w-4 h-4" />
+              </span>
+              <h2 className="font-heading text-lg tracking-[2px] m-0 text-text-primary uppercase leading-tight">
+                Judge Portal
               </h2>
-              <p className="font-tech text-[11px] text-accent-primary m-0 font-bold tracking-[1px] uppercase">
-                Judge Committee
-              </p>
             </div>
+            <p className="font-tech text-[11px] text-accent-primary m-0 font-bold tracking-[1.5px] uppercase mt-1">
+              Evaluation Committee
+            </p>
           </div>
 
           {/* Event Status Capsule */}
-          <div className="mt-4 px-3 py-2 bg-status-success/10 border border-status-success/30 rounded flex items-center justify-between">
+          <div className="mt-4 w-full px-3 py-1.5 bg-status-success/10 border border-status-success/30 rounded flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-status-success animate-pulse"></span>
               <span className="text-[11px] text-status-success font-bold uppercase tracking-wider">

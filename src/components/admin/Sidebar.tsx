@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -39,19 +40,32 @@ export default function AdminSidebar() {
 
   return (
     <aside className="w-full md:w-[280px] bg-surface-color md:border-r border-b md:border-b-0 border-border-color flex flex-col justify-between py-6 md:sticky top-0 md:h-screen z-20">
-      <div className="px-6 pb-6 border-b border-border-color">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-accent-secondary/10 border border-accent-secondary/40 rounded">
-            <ShieldAlert className="text-accent-secondary w-7 h-7 animate-pulse" />
-          </div>
-          <div>
-            <h2 className="font-heading text-[1.4rem] tracking-[2px] m-0 text-text-primary uppercase">
+      <div className="px-6 pb-6 border-b border-border-color flex flex-col items-center text-center">
+        {/* Top Center Logo */}
+        <div className="mb-3.5 relative flex items-center justify-center">
+          <Image
+            src="/ivc-gear-logo.png"
+            alt="Innovators & Visionaries Club Logo"
+            width={72}
+            height={72}
+            priority
+            className="w-[72px] h-[72px] object-contain drop-shadow-[0_0_15px_rgba(255,0,127,0.35)] hover:scale-105 transition-transform"
+          />
+        </div>
+
+        {/* Respective Portal Heading Below Logo */}
+        <div className="flex flex-col items-center">
+          <div className="flex items-center gap-2">
+            <span className="p-1 bg-accent-secondary/15 border border-accent-secondary/40 rounded">
+              <ShieldAlert className="text-accent-secondary w-4 h-4 animate-pulse" />
+            </span>
+            <h2 className="font-heading text-[1.4rem] tracking-[2px] m-0 text-text-primary uppercase leading-tight">
               Admin HQ
             </h2>
-            <p className="font-tech text-xs text-accent-primary m-0 font-bold tracking-[1px] uppercase">
-              Mission Control
-            </p>
           </div>
+          <p className="font-tech text-[11px] text-accent-primary m-0 font-bold tracking-[1.5px] uppercase mt-1">
+            Mission Control
+          </p>
         </div>
       </div>
 
