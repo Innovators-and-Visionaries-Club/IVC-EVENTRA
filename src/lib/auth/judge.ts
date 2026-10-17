@@ -88,3 +88,5 @@ export async function requireJudge() {
 
   return { user, profile };
 }
+
+export const requireJudgeAuth = requireJudge;

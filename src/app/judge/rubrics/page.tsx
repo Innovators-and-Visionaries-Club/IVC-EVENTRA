@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { requireJudgeAuth } from "@/lib/auth/judge";
+import { requireJudge } from "@/lib/auth/judge";
 import {
   Layers,
   FileCheck2,
@@ -66,7 +66,7 @@ const statusConfig: Record<string, { label: string; icon: React.ReactNode; cls: 
 export default async function JudgeRubricsPage() {
   // Require judge auth
   try {
-    await requireJudgeAuth();
+    await requireJudge();
   } catch {
     // layout handles redirect, this is a safety fallback
   }

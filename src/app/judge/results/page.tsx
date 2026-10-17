@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { requireJudgeAuth } from "@/lib/auth/judge";
+import { requireJudge } from "@/lib/auth/judge";
 import { Trophy, Award, Medal, Users, ArrowUpRight, BarChart3, Clock, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
@@ -24,7 +24,7 @@ interface LeaderboardItem {
 
 export default async function JudgeLeaderboardPage() {
   try {
-    await requireJudgeAuth();
+    await requireJudge();
   } catch {
     // layout handles redirect
   }
