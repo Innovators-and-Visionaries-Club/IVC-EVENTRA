@@ -441,16 +441,18 @@ export default function UsersClientView({
     const q = searchQuery.toLowerCase();
     return teamsHierarchy.filter((t) => {
       const matchName = t.name.toLowerCase().includes(q);
-      const matchCode = t.code.toLowerCase().includes(q);
+      const matchCode = t.code?.toLowerCase().includes(q);
       const matchTrack = t.track?.toLowerCase().includes(q);
       const matchLeader =
         t.leader?.full_name?.toLowerCase().includes(q) ||
-        t.leader?.email.toLowerCase().includes(q) ||
+        t.leader?.name?.toLowerCase().includes(q) ||
+        t.leader?.email?.toLowerCase().includes(q) ||
         t.leader_name?.toLowerCase().includes(q);
       const matchMember = t.members.some(
         (m) =>
           m.full_name?.toLowerCase().includes(q) ||
-          m.email.toLowerCase().includes(q)
+          m.name?.toLowerCase().includes(q) ||
+          m.email?.toLowerCase().includes(q)
       );
       return matchName || matchCode || matchTrack || matchLeader || matchMember;
     });
@@ -706,7 +708,7 @@ export default function UsersClientView({
                         {team.leader && (
                           <div className="hidden md:flex items-center gap-1.5 px-2 py-1 bg-accent-primary/10 border border-accent-primary/30 text-accent-primary text-xs font-tech">
                             <Crown size={12} />
-                            <span>Leader: {team.leader.full_name || team.leader.email}</span>
+                            <span>Leader: {team.leader.full_name || team.leader.name || team.leader.email}</span>
                           </div>
                         )}
                         <span className="font-tech text-xs uppercase px-2.5 py-1 bg-surface-color-light border border-border-color text-text-secondary">
@@ -733,15 +735,15 @@ export default function UsersClientView({
                             {team.leader ? (
                               <div className="flex items-start gap-3">
                                 <div className="w-9 h-9 rounded bg-accent-primary/20 border border-accent-primary/40 flex items-center justify-center font-heading text-accent-primary font-bold text-sm shrink-0">
-                                  {team.leader.full_name ? team.leader.full_name.charAt(0).toUpperCase() : "L"}
+                                  {(team.leader.full_name || team.leader.name || "L").charAt(0).toUpperCase()}
                                 </div>
                                 <div className="min-w-0">
                                   <h4 className="font-heading text-sm text-text-primary truncate m-0 font-bold">
-                                    {team.leader.full_name || team.leader_name || "Team Leader"}
+                                    {team.leader.full_name || team.leader.name || team.leader_name || "Team Leader"}
                                   </h4>
                                   <p className="text-xs text-text-secondary truncate m-0 flex items-center gap-1.5 mt-0.5">
                                     <Mail size={12} className="text-accent-primary/70 shrink-0" />
-                                    <span className="truncate">{team.leader.email}</span>
+                                    <span className="truncate">{team.leader.email || "No email"}</span>
                                   </p>
                                   <span className="inline-block mt-2 font-mono text-[10px] px-2 py-0.5 bg-accent-primary/20 text-accent-primary border border-accent-primary/30 uppercase">
                                     Primary Contact
@@ -783,14 +785,14 @@ export default function UsersClientView({
                                     className="p-2.5 bg-surface-color-light/40 border border-border-color/80 rounded flex items-center gap-2.5 hover:border-accent-secondary/40 transition-colors"
                                   >
                                     <div className="w-7 h-7 rounded bg-surface-color border border-border-color flex items-center justify-center font-heading text-xs text-text-secondary shrink-0 uppercase">
-                                      {member.full_name ? member.full_name.charAt(0) : "M"}
+                                      {(member.full_name || member.name || "M").charAt(0).toUpperCase()}
                                     </div>
                                     <div className="min-w-0 flex-1">
                                       <p className="font-medium text-xs text-text-primary truncate m-0">
-                                        {member.full_name || "Member"}
+                                        {member.full_name || member.name || "Member"}
                                       </p>
                                       <p className="text-[11px] text-text-secondary truncate m-0">
-                                        {member.email}
+                                        {member.email || "No email"}
                                       </p>
                                     </div>
                                     <span className="text-[9px] font-mono px-1.5 py-0.5 bg-surface-color border border-border-color text-text-secondary uppercase shrink-0">

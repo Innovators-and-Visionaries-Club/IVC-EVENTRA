@@ -21,6 +21,7 @@ export interface MemberHierarchyItem {
   user_id: string;
   role: "leader" | "member";
   name: string | null;
+  full_name?: string | null;
   email: string | null;
   created_at?: string;
 }
@@ -83,11 +84,13 @@ export async function getTeamsHierarchyData(): Promise<TeamHierarchyItem[]> {
 
     ((rawMembers as any[]) || []).forEach((rm) => {
       const profile = Array.isArray(rm.profiles) ? rm.profiles[0] : rm.profiles;
+      const nameVal = profile?.full_name || rm.name || "Unknown Member";
       const memberItem: MemberHierarchyItem = {
         id: rm.id,
         user_id: rm.user_id,
         role: rm.role === "leader" ? "leader" : "member",
-        name: profile?.full_name || rm.name || "Unknown Member",
+        name: nameVal,
+        full_name: nameVal,
         email: profile?.email || rm.email || null,
         created_at: rm.joined_at,
       };
@@ -108,6 +111,7 @@ export async function getTeamsHierarchyData(): Promise<TeamHierarchyItem[]> {
               user_id: "",
               role: "leader" as const,
               name: team.leader_name,
+              full_name: team.leader_name,
               email: null,
             }
           : null);
@@ -883,12 +887,14 @@ export async function bulkImportUsers(records: BulkImportUserRecord[]) {
           })
           .eq("id", userId);
 
-        try {
-          await supabaseAdmin.auth.admin.updateUserById(userId, {
-            user_metadata: { full_name: fullName, role },
-          });
-        } catch {
-          // Ignore metadata sync error
+        if (userId) {
+          try {
+            await supabaseAdmin.auth.admin.updateUserById(userId, {
+              user_metadata: { full_name: fullName, role },
+            });
+          } catch {
+            // Ignore metadata sync error
+          }
         }
 
         results.updated++;
