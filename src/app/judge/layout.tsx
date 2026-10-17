@@ -25,15 +25,16 @@ export default async function JudgeLayout({
     .eq("id", user.id)
     .maybeSingle();
 
-  if (!profile || (profile as { role?: string }).role !== "judge") {
+  const role = (profile as { role?: string })?.role || (user.user_metadata?.role as string | undefined);
+  if (!role || (role !== "judge" && role !== "admin")) {
     redirect("/login");
   }
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-[#050508] text-text-primary">
+    <div className="flex flex-col md:flex-row min-h-screen md:h-screen md:overflow-hidden bg-[#050508] text-text-primary">
       <JudgeSidebar />
       <main
-        className="flex-1 p-6 md:p-10 overflow-y-auto"
+        className="flex-1 p-6 md:p-10 md:overflow-y-auto overscroll-contain h-full"
         style={{
           background:
             "radial-gradient(circle at top right, rgba(251, 200, 21, 0.04), transparent 500px), radial-gradient(circle at bottom left, rgba(255, 0, 127, 0.04), transparent 500px)",

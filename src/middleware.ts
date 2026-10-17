@@ -32,8 +32,47 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  // Only run auth routing on root path "/" to prevent blocking every page navigation
-  if (request.nextUrl.pathname === "/") {
+  const host = request.headers.get("host") || "";
+  const port = request.nextUrl.port || host.split(":")[1] || "";
+  const pathname = request.nextUrl.pathname;
+
+  // Port-specific isolation and auto-routing
+  const isJudgePort = port === "3001" || port === "4001" || port === "3011";
+  const isTeamPort = port === "3002" || port === "4002" || port === "3012";
+  const isOpsPort = port === "3003" || port === "4003" || port === "3013";
+
+  if (isJudgePort) {
+    // Dedicated Judge Portal Port
+    if (pathname === "/") {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return NextResponse.redirect(new URL("/login", request.url));
+      return NextResponse.redirect(new URL("/judge", request.url));
+    }
+    if (pathname.startsWith("/admin") || pathname.startsWith("/team") || pathname.startsWith("/ops")) {
+      return NextResponse.redirect(new URL("/judge", request.url));
+    }
+  } else if (isTeamPort) {
+    // Dedicated Team Lead & Participant Portal Port
+    if (pathname === "/") {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return NextResponse.redirect(new URL("/login", request.url));
+      return NextResponse.redirect(new URL("/team", request.url));
+    }
+    if (pathname.startsWith("/admin") || pathname.startsWith("/judge") || pathname.startsWith("/ops")) {
+      return NextResponse.redirect(new URL("/team", request.url));
+    }
+  } else if (isOpsPort) {
+    // Dedicated Operations / Scanner Port
+    if (pathname === "/") {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return NextResponse.redirect(new URL("/login", request.url));
+      return NextResponse.redirect(new URL("/ops/scanner", request.url));
+    }
+    if (pathname.startsWith("/admin") || pathname.startsWith("/judge") || pathname.startsWith("/team")) {
+      return NextResponse.redirect(new URL("/ops/scanner", request.url));
+    }
+  } else if (pathname === "/") {
+    // Default Port 3000 Role Routing
     const {
       data: { user },
     } = await supabase.auth.getUser();

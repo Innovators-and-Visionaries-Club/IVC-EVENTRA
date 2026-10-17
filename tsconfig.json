@@ -29,12 +29,17 @@
     }
   },
   "include": [
-    "next-env.d.ts",
+    "**/*.mts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "**/*.mts"
+    ".next/types/**/*.ts",
+    ".next_3004/types/**/*.ts",
+    ".next_4001/types/**/*.ts",
+    ".next_4002/types/**/*.ts",
+    ".next_4003/types/**/*.ts",
+    "next-env.d.ts",
+    ".next_4000/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

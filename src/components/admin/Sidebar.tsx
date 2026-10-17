@@ -39,8 +39,8 @@ export default function AdminSidebar() {
   }, [pathname]);
 
   return (
-    <aside className="w-full md:w-[280px] bg-surface-color md:border-r border-b md:border-b-0 border-border-color flex flex-col justify-between py-6 md:sticky top-0 md:h-screen z-20">
-      <div className="px-6 pb-6 border-b border-border-color flex flex-col items-center text-center">
+    <aside className="w-full md:w-[280px] md:shrink-0 bg-surface-color md:border-r border-b md:border-b-0 border-border-color flex flex-col justify-between py-6 md:h-screen z-20 md:overflow-y-auto overscroll-contain custom-scrollbar">
+      <div className="px-6 pb-6 border-b border-border-color flex flex-col items-center text-center shrink-0">
         {/* Top Center Logo */}
         <div className="mb-3.5 relative flex items-center justify-center">
           <Image
@@ -119,7 +119,7 @@ export default function AdminSidebar() {
         })}
       </div>
 
-      <div className="px-4 py-4 border-t border-border-color mt-auto space-y-2">
+      <div className="px-4 py-4 border-t border-border-color mt-auto space-y-2 shrink-0">
         <Link
           href="/"
           className="flex items-center gap-2 py-2 px-3 text-xs font-tech font-bold uppercase tracking-[1px] text-text-secondary hover:text-accent-tertiary transition-colors border border-border-color hover:border-accent-tertiary/40 rounded bg-surface-color-light/50"

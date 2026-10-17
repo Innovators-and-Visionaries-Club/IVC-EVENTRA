@@ -23,6 +23,14 @@ export async function getRoleRedirectUrl(
     userId = userOrId;
   }
 
+  // Check if logging in on a dedicated portal port
+  if (typeof window !== "undefined") {
+    const activePort = window.location.port;
+    if (activePort === "3001" || activePort === "4001" || activePort === "3011") return "/judge";
+    if (activePort === "3002" || activePort === "4002" || activePort === "3012") return "/team";
+    if (activePort === "3003" || activePort === "4003" || activePort === "3013") return "/ops/scanner";
+  }
+
   // 1. Instant Fast-Path for Known Roles from Auth Metadata
   if (metadataRole === "admin") {
     return "/admin";

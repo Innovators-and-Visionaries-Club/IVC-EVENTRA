@@ -61,9 +61,9 @@ export default function TeamSidebar({
   ];
 
   return (
-    <aside className="w-full md:w-[280px] bg-[#0c0c14] md:border-r border-b md:border-b-0 border-border-color flex flex-col justify-between py-6 md:sticky top-0 md:h-screen z-20 font-tech">
+    <aside className="w-full md:w-[280px] md:shrink-0 bg-[#0c0c14] md:border-r border-b md:border-b-0 border-border-color flex flex-col justify-between py-6 md:h-screen z-20 font-tech md:overflow-y-auto overscroll-contain custom-scrollbar">
       {/* Brand Header */}
-      <div>
+      <div className="shrink-0">
         <div className="px-6 pb-6 border-b border-border-color flex flex-col items-center text-center">
           {/* Top Center Logo */}
           <div className="mb-3.5 relative flex items-center justify-center">
@@ -158,7 +158,7 @@ export default function TeamSidebar({
       </div>
 
       {/* Footer Team Context & Sign Out */}
-      <div className="px-4 py-4 border-t border-border-color mt-auto space-y-3">
+      <div className="px-4 py-4 border-t border-border-color mt-auto space-y-3 shrink-0">
         <div className="p-3 bg-surface-color/50 border border-border-color rounded">
           <p className="text-[10px] uppercase text-text-secondary tracking-wider font-bold mb-0.5">
             Active Team

@@ -18,8 +18,8 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className="w-full md:w-[280px] bg-surface-color md:border-r border-b md:border-b-0 border-border-color flex flex-col justify-between py-6 md:sticky top-0 md:h-screen z-10">
-      <div className="px-6 pb-6 border-b border-border-color flex flex-col items-center text-center">
+    <aside className="w-full md:w-[280px] md:shrink-0 bg-surface-color md:border-r border-b md:border-b-0 border-border-color flex flex-col justify-between py-6 md:h-screen z-10 md:overflow-y-auto overscroll-contain custom-scrollbar">
+      <div className="px-6 pb-6 border-b border-border-color flex flex-col items-center text-center shrink-0">
         {/* Top Center Logo */}
         <div className="mb-3.5 relative flex items-center justify-center">
           <Image
@@ -77,7 +77,7 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <div className="px-3 py-6 border-t border-border-color mt-auto">
+      <div className="px-3 py-6 border-t border-border-color mt-auto shrink-0">
         <div className="flex flex-col justify-center items-center gap-6">
           <Image
             src="/vvce-logo.png"

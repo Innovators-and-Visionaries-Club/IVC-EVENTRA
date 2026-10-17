@@ -25,8 +25,8 @@ export default async function TeamLayout({
     .eq("id", user.id)
     .maybeSingle();
 
-  const userRole = (profile as { role?: string })?.role;
-  if (!profile || (userRole !== "participant" && userRole !== "leader")) {
+  const userRole = (profile as { role?: string })?.role || (user.user_metadata?.role as string | undefined);
+  if (!profile || (userRole !== "participant" && userRole !== "leader" && userRole !== "admin")) {
     redirect("/login");
   }
 
@@ -48,7 +48,7 @@ export default async function TeamLayout({
   const leaderName = teamData?.leader_name || user.email?.split("@")[0] || "Leader";
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-[#050508] text-text-primary">
+    <div className="flex flex-col md:flex-row min-h-screen md:h-screen md:overflow-hidden bg-[#050508] text-text-primary">
       <TeamSidebar
         teamName={teamName}
         leaderName={leaderName}
@@ -56,7 +56,7 @@ export default async function TeamLayout({
         isLeader={isLeader}
       />
       <main
-        className="flex-1 p-6 md:p-10 overflow-y-auto"
+        className="flex-1 p-6 md:p-10 md:overflow-y-auto overscroll-contain h-full"
         style={{
           background:
             "radial-gradient(circle at top right, rgba(0, 240, 255, 0.05), transparent 500px), radial-gradient(circle at bottom left, rgba(255, 0, 127, 0.05), transparent 500px)",

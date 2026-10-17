@@ -77,10 +77,10 @@ export default async function AdminLayout({
   // }
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-[#050508]">
+    <div className="flex flex-col md:flex-row min-h-screen md:h-screen md:overflow-hidden bg-[#050508]">
       <AdminSidebar />
       <main
-        className="flex-1 p-5 md:p-10 overflow-y-auto"
+        className="flex-1 p-5 md:p-10 md:overflow-y-auto overscroll-contain h-full"
         style={{
           background:
             "radial-gradient(circle at top right, rgba(255, 0, 127, 0.08), transparent 500px), radial-gradient(circle at bottom left, rgba(0, 240, 255, 0.05), transparent 500px)",
