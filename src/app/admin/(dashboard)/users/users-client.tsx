@@ -25,6 +25,9 @@ import {
   Download,
   Upload,
   FileSpreadsheet,
+  Edit2,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 import {
   UserProfileItem,
@@ -147,8 +150,66 @@ export default function UsersClientView({
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importLoading, setImportLoading] = useState(false);
   const [importPreview, setImportPreview] = useState<BulkImportUserRecord[]>([]);
+  const [selectedRecordIndexes, setSelectedRecordIndexes] = useState<Set<number>>(new Set());
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editRowData, setEditRowData] = useState<BulkImportUserRecord | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  // Toggle selection for single record
+  const handleToggleRecordSelect = (index: number) => {
+    setSelectedRecordIndexes((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  };
+
+  // Select all or deselect all records
+  const handleToggleSelectAllRecords = () => {
+    if (selectedRecordIndexes.size === importPreview.length) {
+      setSelectedRecordIndexes(new Set());
+    } else {
+      setSelectedRecordIndexes(new Set(importPreview.map((_, idx) => idx)));
+    }
+  };
+
+  // Start editing a record
+  const handleStartEditRecord = (index: number) => {
+    setEditingIndex(index);
+    setEditRowData({ ...importPreview[index] });
+  };
+
+  // Save edited record back to staging preview
+  const handleSaveEditRecord = () => {
+    if (editingIndex === null || !editRowData) return;
+    setImportPreview((prev) =>
+      prev.map((r, idx) => (idx === editingIndex ? { ...editRowData } : r))
+    );
+    setEditingIndex(null);
+    setEditRowData(null);
+  };
+
+  // Remove a record from import
+  const handleRemoveRecord = (index: number) => {
+    setImportPreview((prev) => prev.filter((_, idx) => idx !== index));
+    setSelectedRecordIndexes((prev) => {
+      const next = new Set<number>();
+      prev.forEach((i) => {
+        if (i < index) next.add(i);
+        else if (i > index) next.add(i - 1);
+      });
+      return next;
+    });
+    if (editingIndex === index) {
+      setEditingIndex(null);
+      setEditRowData(null);
+    }
+  };
 
   // Export Users as CSV
   const handleExportCSV = () => {
@@ -269,7 +330,8 @@ export default function UsersClientView({
           const fullName = nameIdx !== -1 ? cols[nameIdx]?.trim() : email.split("@")[0];
           let roleRaw = (roleIdx !== -1 ? cols[roleIdx]?.trim().toLowerCase() : "participant") as AllowedUserRole;
           
-          if (!["admin", "judge", "staff", "participant", "leader"].includes(roleRaw)) {
+          // Fencing: nobody can be assigned as admin through CSV import
+          if (roleRaw === "admin" || !["judge", "staff", "participant", "leader"].includes(roleRaw)) {
             roleRaw = "participant";
           }
 
@@ -292,6 +354,8 @@ export default function UsersClientView({
         }
 
         setImportPreview(records);
+        // By default check all verified records
+        setSelectedRecordIndexes(new Set(records.map((_, idx) => idx)));
       } catch (err: unknown) {
         setImportError(err instanceof Error ? err.message : "Failed to parse CSV file.");
       }
@@ -299,21 +363,31 @@ export default function UsersClientView({
     reader.readAsText(file);
   };
 
-  // Submit Bulk Import
+  // Submit Verified Bulk Import
   const handleRunBulkImport = async () => {
-    if (importPreview.length === 0) return;
+    // Only import records checked/selected by user
+    const recordsToImport = importPreview.filter((_, idx) => selectedRecordIndexes.has(idx));
+
+    if (recordsToImport.length === 0) {
+      setImportError("Please select at least one record with the checkbox to import.");
+      return;
+    }
+
     setImportLoading(true);
     setImportError(null);
 
     try {
-      const res = await bulkImportUsers(importPreview);
+      const res = await bulkImportUsers(recordsToImport);
       setNotification({
         type: "success",
-        message: `Bulk Import Completed! Processed ${res.total} users (${res.created} created, ${res.updated} updated, ${res.errors.length} skipped).`,
+        message: `Verified Import Completed! Processed ${res.total} users (${res.created} created, ${res.updated} updated, ${res.errors.length} skipped).`,
       });
       setIsImportModalOpen(false);
       setImportFile(null);
       setImportPreview([]);
+      setSelectedRecordIndexes(new Set());
+      setEditingIndex(null);
+      setEditRowData(null);
       router.refresh();
     } catch (err: unknown) {
       setImportError(err instanceof Error ? err.message : "Failed to import users.");
@@ -1112,78 +1186,272 @@ export default function UsersClientView({
               </div>
             )}
 
-            {/* Preview Table */}
+            {/* Verification & Edit Table */}
             {importPreview.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-text-primary uppercase">
-                    Preview ({importPreview.length} records ready):
-                  </span>
-                  <span className="text-[11px] text-status-success font-mono">
-                    ✓ Validated
+              <div className="space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 bg-surface-color/70 border border-border-color rounded text-xs">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleToggleSelectAllRecords}
+                      className="flex items-center gap-1.5 text-accent-tertiary hover:text-text-primary font-bold cursor-pointer"
+                    >
+                      {selectedRecordIndexes.size === importPreview.length ? (
+                        <CheckSquare size={16} className="text-accent-tertiary" />
+                      ) : (
+                        <Square size={16} />
+                      )}
+                      <span>
+                        {selectedRecordIndexes.size === importPreview.length
+                          ? "Deselect All"
+                          : `Select All (${importPreview.length})`}
+                      </span>
+                    </button>
+                    <span className="text-text-secondary">•</span>
+                    <span className="text-text-secondary font-mono">
+                      {selectedRecordIndexes.size} of {importPreview.length} verified for import
+                    </span>
+                  </div>
+
+                  <span className="text-[10px] text-accent-primary font-mono bg-accent-primary/10 border border-accent-primary/30 px-2 py-0.5 rounded">
+                    🛡️ Admin role assignment locked
                   </span>
                 </div>
-                <div className="border border-border-color rounded max-h-48 overflow-y-auto bg-surface-color/40">
+
+                {/* Interactive Verification Checklist Table */}
+                <div className="border border-border-color rounded max-h-64 overflow-y-auto bg-surface-color/40">
                   <table className="w-full text-left text-[11px] font-mono">
-                    <thead className="bg-surface-color-light text-text-secondary sticky top-0 border-b border-border-color">
+                    <thead className="bg-surface-color-light text-text-secondary sticky top-0 border-b border-border-color z-10">
                       <tr>
+                        <th className="p-2 w-8 text-center">Verify</th>
                         <th className="p-2">Name</th>
                         <th className="p-2">Email</th>
                         <th className="p-2">Role</th>
                         <th className="p-2">Team</th>
+                        <th className="p-2 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border-color/40">
-                      {importPreview.slice(0, 15).map((row, idx) => (
-                        <tr key={idx} className="hover:bg-surface-color">
-                          <td className="p-2 text-text-primary font-bold">{row.full_name}</td>
-                          <td className="p-2 text-text-secondary">{row.email}</td>
-                          <td className="p-2">
-                            <span className="px-1.5 py-0.5 rounded text-[9px] uppercase bg-surface-color border border-border-color text-accent-primary">
-                              {row.role}
-                            </span>
-                          </td>
-                          <td className="p-2 text-text-secondary">
-                            {row.team_name || "—"}
-                          </td>
-                        </tr>
-                      ))}
+                      {importPreview.map((row, idx) => {
+                        const isSelected = selectedRecordIndexes.has(idx);
+                        return (
+                          <tr
+                            key={idx}
+                            className={`transition-colors ${
+                              isSelected
+                                ? "bg-accent-tertiary/[0.04] hover:bg-accent-tertiary/[0.08]"
+                                : "opacity-45 hover:opacity-75"
+                            }`}
+                          >
+                            <td className="p-2 text-center">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => handleToggleRecordSelect(idx)}
+                                className="accent-accent-tertiary cursor-pointer w-4 h-4"
+                              />
+                            </td>
+                            <td className="p-2 text-text-primary font-bold">{row.full_name}</td>
+                            <td className="p-2 text-text-secondary">{row.email}</td>
+                            <td className="p-2">
+                              <span
+                                className={`px-1.5 py-0.5 rounded text-[9px] uppercase font-bold ${
+                                  row.role === "judge"
+                                    ? "bg-accent-tertiary/20 text-accent-tertiary border border-accent-tertiary/40"
+                                    : row.role === "leader"
+                                    ? "bg-accent-primary/20 text-accent-primary border border-accent-primary/40"
+                                    : row.role === "staff"
+                                    ? "bg-status-success/20 text-status-success border border-status-success/40"
+                                    : "bg-surface-color border border-border-color text-text-secondary"
+                                }`}
+                              >
+                                {row.role}
+                              </span>
+                            </td>
+                            <td className="p-2 text-text-secondary truncate max-w-[130px]">
+                              {row.team_name ? (
+                                <span>
+                                  {row.team_name} {row.track ? `[${row.track}]` : ""}
+                                </span>
+                              ) : (
+                                "—"
+                              )}
+                            </td>
+                            <td className="p-2 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => handleStartEditRecord(idx)}
+                                  className="p-1 text-accent-tertiary hover:text-white hover:bg-accent-tertiary/20 rounded transition-colors"
+                                  title="Edit details before importing"
+                                >
+                                  <Edit2 size={13} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveRecord(idx)}
+                                  className="p-1 text-status-error/80 hover:text-status-error hover:bg-status-error/20 rounded transition-colors"
+                                  title="Remove from import"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
-                {importPreview.length > 15 && (
-                  <p className="text-[10px] text-text-secondary text-right m-0">
-                    Showing first 15 of {importPreview.length} records...
-                  </p>
-                )}
+              </div>
+            )}
+
+            {/* EDIT SINGLE RECORD SUB-MODAL */}
+            {editingIndex !== null && editRowData && (
+              <div className="p-4 bg-surface-color border-2 border-accent-tertiary rounded space-y-3 animate-fade-in text-xs">
+                <div className="flex items-center justify-between border-b border-border-color pb-2">
+                  <span className="font-bold text-text-primary uppercase flex items-center gap-1.5">
+                    <Edit2 size={13} className="text-accent-tertiary" />
+                    Edit Row #{editingIndex + 1} Details
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingIndex(null);
+                      setEditRowData(null);
+                    }}
+                    className="text-text-secondary hover:text-text-primary"
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] text-text-secondary uppercase font-bold block mb-1">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      value={editRowData.full_name}
+                      onChange={(e) =>
+                        setEditRowData({ ...editRowData, full_name: e.target.value })
+                      }
+                      className="w-full bg-surface-color-light border border-border-color p-2 rounded text-xs text-text-primary outline-none focus:border-accent-tertiary font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-text-secondary uppercase font-bold block mb-1">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      value={editRowData.email}
+                      onChange={(e) =>
+                        setEditRowData({ ...editRowData, email: e.target.value })
+                      }
+                      className="w-full bg-surface-color-light border border-border-color p-2 rounded text-xs text-text-primary outline-none focus:border-accent-tertiary font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-text-secondary uppercase font-bold block mb-1">
+                      Assigned Role (Admin Locked)
+                    </label>
+                    <select
+                      value={editRowData.role}
+                      onChange={(e) =>
+                        setEditRowData({
+                          ...editRowData,
+                          role: e.target.value as AllowedUserRole,
+                        })
+                      }
+                      className="w-full bg-surface-color-light border border-border-color p-2 rounded text-xs text-text-primary outline-none focus:border-accent-tertiary font-mono uppercase"
+                    >
+                      <option value="participant">Participant</option>
+                      <option value="leader">Team Leader</option>
+                      <option value="judge">Judge</option>
+                      <option value="staff">Staff / Club Member</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-text-secondary uppercase font-bold block mb-1">
+                      Team Name (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={editRowData.team_name || ""}
+                      onChange={(e) =>
+                        setEditRowData({ ...editRowData, team_name: e.target.value })
+                      }
+                      placeholder="e.g. Team Hyperion"
+                      className="w-full bg-surface-color-light border border-border-color p-2 rounded text-xs text-text-primary outline-none focus:border-accent-tertiary font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-border-color">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingIndex(null);
+                      setEditRowData(null);
+                    }}
+                    className="px-3 py-1.5 border border-border-color text-text-secondary hover:text-text-primary text-xs uppercase"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveEditRecord}
+                    className="px-4 py-1.5 bg-accent-tertiary text-black font-bold text-xs uppercase hover:bg-accent-tertiary/90 cursor-pointer"
+                  >
+                    Save Changes
+                  </button>
+                </div>
               </div>
             )}
 
             {/* Modal Actions */}
-            <div className="pt-3 border-t border-border-color flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsImportModalOpen(false);
-                  setImportFile(null);
-                  setImportPreview([]);
-                  setImportError(null);
-                }}
-                className="px-4 py-2 border border-border-color text-text-secondary hover:text-text-primary text-xs uppercase font-bold tracking-wider cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={importLoading || importPreview.length === 0}
-                onClick={handleRunBulkImport}
-                className="px-5 py-2 bg-gradient-to-r from-accent-tertiary to-accent-primary text-black font-bold uppercase tracking-wider text-xs hover:opacity-90 transition-all disabled:opacity-40 cursor-pointer flex items-center gap-2"
-              >
-                {importLoading && <RefreshCw size={14} className="animate-spin" />}
-                <span>
-                  {importLoading ? "Importing Records..." : `Import ${importPreview.length} Users`}
-                </span>
-              </button>
+            <div className="pt-3 border-t border-border-color flex items-center justify-between gap-3">
+              <span className="text-xs text-text-secondary font-mono">
+                {selectedRecordIndexes.size > 0
+                  ? `Ready to import ${selectedRecordIndexes.size} verified record(s).`
+                  : "Check the boxes above to confirm records for import."}
+              </span>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsImportModalOpen(false);
+                    setImportFile(null);
+                    setImportPreview([]);
+                    setSelectedRecordIndexes(new Set());
+                    setEditingIndex(null);
+                    setEditRowData(null);
+                    setImportError(null);
+                  }}
+                  className="px-4 py-2 border border-border-color text-text-secondary hover:text-text-primary text-xs uppercase font-bold tracking-wider cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={importLoading || selectedRecordIndexes.size === 0}
+                  onClick={handleRunBulkImport}
+                  className="px-5 py-2 bg-gradient-to-r from-accent-tertiary to-accent-primary text-black font-bold uppercase tracking-wider text-xs hover:opacity-90 transition-all disabled:opacity-40 cursor-pointer flex items-center gap-2"
+                >
+                  {importLoading && <RefreshCw size={14} className="animate-spin" />}
+                  <span>
+                    {importLoading
+                      ? "Importing Records..."
+                      : `Import Verified (${selectedRecordIndexes.size})`}
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
