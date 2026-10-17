@@ -25,13 +25,13 @@ export default function JudgeSidebar() {
       exact: true,
     },
     {
-      href: "/admin/rounds",
+      href: "/judge/rubrics",
       icon: Layers,
       label: "Judging Rubrics",
       badge: "Criteria",
     },
     {
-      href: "/team/results",
+      href: "/judge/results",
       icon: Award,
       label: "Leaderboard View",
       badge: "Standings",
