@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/auth/admin";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 
-export type AllowedUserRole = "admin" | "judge" | "staff" | "organizer" | "participant" | "leader";
+export type AllowedUserRole = "admin" | "judge" | "staff" | "participant" | "leader";
 
 export interface UserProfileItem {
   id: string;
@@ -159,11 +159,7 @@ export async function getUsersList(params?: {
       .limit(200);
 
     if (params?.role && params.role !== "all") {
-      if (params.role === "staff") {
-        query = query.in("role", ["staff", "organizer"]);
-      } else {
-        query = query.eq("role", params.role);
-      }
+      query = query.eq("role", params.role);
     }
 
     if (params?.search && params.search.trim() !== "") {

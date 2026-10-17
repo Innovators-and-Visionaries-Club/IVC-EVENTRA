@@ -1,6 +1,7 @@
 "use server";
 
 import { requireAdmin } from "@/lib/auth/admin";
+import { requireOperationsRole } from "@/lib/auth/operations";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 
@@ -27,10 +28,15 @@ export interface JudgeAssignmentsData {
 
 export async function getJudgeAssignmentsData(): Promise<JudgeAssignmentsData> {
   try {
-    await requireAdmin();
-  } catch (err) {
-    console.warn("getJudgeAssignmentsData auth notice:", err);
-    return { judges: [], teams: [] };
+    // Accessible by admins as well as operational staff / club members
+    await requireOperationsRole();
+  } catch {
+    try {
+      await requireAdmin();
+    } catch (err) {
+      console.warn("getJudgeAssignmentsData auth notice:", err);
+      return { judges: [], teams: [] };
+    }
   }
 
   const fetchData = async (): Promise<JudgeAssignmentsData> => {

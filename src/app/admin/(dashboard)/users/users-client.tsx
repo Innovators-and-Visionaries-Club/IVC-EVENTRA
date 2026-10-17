@@ -60,13 +60,8 @@ const roleBadges: Record<
     icon: Gavel,
   },
   staff: {
-    label: "Staff",
+    label: "Staff / Club",
     badgeClass: "bg-status-success/15 text-status-success border-status-success/40",
-    icon: Shield,
-  },
-  organizer: {
-    label: "Organizer",
-    badgeClass: "bg-purple-500/15 text-purple-400 border-purple-500/40",
     icon: Shield,
   },
   leader: {
@@ -274,7 +269,7 @@ export default function UsersClientView({
           const fullName = nameIdx !== -1 ? cols[nameIdx]?.trim() : email.split("@")[0];
           let roleRaw = (roleIdx !== -1 ? cols[roleIdx]?.trim().toLowerCase() : "participant") as AllowedUserRole;
           
-          if (!["admin", "judge", "staff", "organizer", "participant", "leader"].includes(roleRaw)) {
+          if (!["admin", "judge", "staff", "participant", "leader"].includes(roleRaw)) {
             roleRaw = "participant";
           }
 
@@ -347,9 +342,7 @@ export default function UsersClientView({
     return usersList.filter((u) => {
       // Role filter
       if (activeTab !== "all") {
-        if (activeTab === "staff") {
-          if (!["staff", "organizer"].includes(u.role)) return false;
-        } else if (u.role !== activeTab) {
+        if (u.role !== activeTab) {
           return false;
         }
       }
@@ -850,8 +843,7 @@ export default function UsersClientView({
                             <option value="participant">Participant</option>
                             <option value="leader">Team Leader</option>
                             <option value="judge">Judge</option>
-                            <option value="staff">Staff</option>
-                            <option value="organizer">Organizer</option>
+                            <option value="staff">Staff / Club Member</option>
                             <option value="admin">Admin</option>
                           </select>
 
@@ -971,8 +963,7 @@ export default function UsersClientView({
                   <option value="participant">Participant</option>
                   <option value="leader">Team Leader</option>
                   <option value="judge">Judge</option>
-                  <option value="staff">Staff</option>
-                  <option value="organizer">Organizer</option>
+                  <option value="staff">Staff / Club Member</option>
                   <option value="admin">Administrator</option>
                 </select>
               </div>
