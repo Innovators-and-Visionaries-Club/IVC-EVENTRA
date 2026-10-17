@@ -60,7 +60,7 @@ export default function ScannerDesk({
       </div>
 
       {/* Manual Entry Box */}
-      <div className="glass-panel p-6 border border-border-color space-y-4 flex flex-col justify-between">
+      <div id="manual-lookup" className="glass-panel p-6 border border-border-color space-y-4 flex flex-col justify-between scroll-mt-20">
         <div>
           <h2 className="font-heading text-lg text-text-primary uppercase m-0 flex items-center gap-2">
             <Search className="text-accent-secondary" size={18} />

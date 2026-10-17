@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import {
   CheckCircle2,
   AlertCircle,
@@ -8,13 +8,22 @@ import {
   Utensils,
   Gift,
   UserCheck,
+  ShieldAlert,
+  Users,
+  Sparkles,
 } from "lucide-react";
 import {
   fetchTeamMembersForScan,
   recordMemberAction,
+  recordTeamBulkAction,
+  getLiveScanActivityStream,
+  type LiveActivityFeedItem,
+  type EnrichedActivityLog,
 } from "@/app/actions/operations";
 import type { ActionType } from "@/lib/validations/operations";
 import ScannerDesk from "@/components/ops/ScannerDesk";
+import LiveActivityStream from "@/components/ops/LiveActivityStream";
+import { createClient } from "@/lib/supabase/client";
 
 export interface TeamScanMember {
   id: string;
@@ -24,21 +33,18 @@ export interface TeamScanMember {
   email?: string | null;
 }
 
-export interface ActivityLogEntry {
-  participant_id: string;
-  action_type: string;
-  created_at: string;
-}
-
 export interface TeamScanData {
   team: {
     id: string;
     name: string;
     track?: string | null;
     leader_name?: string | null;
+    code?: string | null;
+    qr_token?: string | null;
+    last_scanned_at?: string | null;
   };
   members: TeamScanMember[];
-  activityLogs: ActivityLogEntry[];
+  activityLogs: EnrichedActivityLog[];
 }
 
 export default function ScannerClientView() {
@@ -49,7 +55,88 @@ export default function ScannerClientView() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [liveStreamLogs, setLiveStreamLogs] = useState<LiveActivityFeedItem[]>([]);
+  const [streamLoading, setStreamLoading] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<Date>(new Date());
   const html5QrCodeRef = useRef<any>(null);
+
+  // Fetch live activity audit stream across all club members
+  const fetchLiveStream = useCallback(async () => {
+    try {
+      setStreamLoading(true);
+      const data = await getLiveScanActivityStream(35);
+      setLiveStreamLogs(data);
+      setLastSyncTime(new Date());
+    } catch (err) {
+      console.warn("Notice: Real-time stream sync notice:", err);
+    } finally {
+      setStreamLoading(false);
+    }
+  }, []);
+
+  // Real-time synchronization subscription for all club members
+  useEffect(() => {
+    fetchLiveStream();
+
+    const supabase = createClient();
+    const channel = supabase
+      .channel("ops-realtime-activity")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "event_activity_logs",
+        },
+        (payload) => {
+          fetchLiveStream();
+          const changedTeamId = (payload.new as any)?.team_id;
+          if (changedTeamId) {
+            setTeamData((current) => {
+              if (current && current.team.id === changedTeamId) {
+                fetchTeamMembersForScan(changedTeamId)
+                  .then((updated) => setTeamData(updated))
+                  .catch(() => {});
+              }
+              return current;
+            });
+          }
+        }
+      )
+      .on("broadcast", { event: "scan_action_recorded" }, (payload) => {
+        fetchLiveStream();
+        const changedTeamId = payload?.payload?.team_id;
+        if (changedTeamId) {
+          setTeamData((current) => {
+            if (current && current.team.id === changedTeamId) {
+              fetchTeamMembersForScan(changedTeamId)
+                .then((updated) => setTeamData(updated))
+                .catch(() => {});
+            }
+            return current;
+          });
+        }
+      })
+      .subscribe();
+
+    // Fallback polling interval every 4 seconds to guarantee sync even across proxy firewalls
+    const pollInterval = setInterval(() => {
+      fetchLiveStream();
+      setTeamData((current) => {
+        if (current?.team?.id) {
+          fetchTeamMembersForScan(current.team.id)
+            .then((updated) => setTeamData(updated))
+            .catch(() => {});
+        }
+        return current;
+      });
+    }, 4000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(pollInterval);
+    };
+  }, [fetchLiveStream]);
 
   const stopScanner = async () => {
     try {
@@ -72,7 +159,6 @@ export default function ScannerClientView() {
   const startScanner = async () => {
     try {
       setErrorMsg(null);
-      // Clean up any stale scanner instance first
       await stopScanner();
 
       const { Html5Qrcode } = await import("html5-qrcode");
@@ -89,9 +175,7 @@ export default function ScannerClientView() {
           handleDetectedCode(decodedText);
           stopScanner();
         },
-        () => {
-          // Frame scan pass-through
-        }
+        () => {}
       );
       setScanning(true);
     } catch (err: unknown) {
@@ -132,7 +216,6 @@ export default function ScannerClientView() {
 
   const handleDetectedCode = async (rawCode: string) => {
     let teamId = rawCode.trim();
-    // Support JSON QR payloads like {"team_id":"..."} or plain UUID
     if (teamId.startsWith("{")) {
       try {
         const parsed = JSON.parse(teamId);
@@ -159,19 +242,36 @@ export default function ScannerClientView() {
     }
   };
 
-  const handleActionClick = async (
-    participantId: string,
-    actionType: ActionType
-  ) => {
+  const broadcastScanEvent = (teamId: string, participantId?: string, actionType?: ActionType) => {
+    try {
+      const supabase = createClient();
+      const channel = supabase.channel("ops-realtime-activity");
+      channel.send({
+        type: "broadcast",
+        event: "scan_action_recorded",
+        payload: {
+          team_id: teamId,
+          participant_id: participantId,
+          action_type: actionType,
+        },
+      });
+    } catch {}
+  };
+
+  const handleActionClick = async (participantId: string, actionType: ActionType) => {
     if (!teamData?.team?.id) return;
     const actionKey = `${participantId}-${actionType}`;
     setErrorMsg(null);
+    setActionLoading(actionKey);
 
-    // 1. Instant optimistic update so button state flips with 0ms perceived lag
-    const optimisticLog: ActivityLogEntry = {
+    // Optimistic update
+    const optimisticLog: EnrichedActivityLog = {
+      id: `temp-${Date.now()}`,
       participant_id: participantId,
       action_type: actionType,
       created_at: new Date().toISOString(),
+      scanner_name: "You (Just now)",
+      scanner_email: "",
     };
 
     setTeamData((prev) =>
@@ -182,14 +282,24 @@ export default function ScannerClientView() {
             activityLogs: [...prev.activityLogs, optimisticLog],
           }
     );
-    setSuccessMsg(`Claimed "${actionType.toUpperCase()}"!`);
 
     try {
-      await recordMemberAction({
+      const res = await recordMemberAction({
         team_id: teamData.team.id,
         participant_id: participantId,
         action_type: actionType,
       });
+
+      setSuccessMsg(
+        `Recorded "${actionType.toUpperCase()}"! Distributed by ${res.record.scanner_name}.`
+      );
+
+      // Broadcast to other club members
+      broadcastScanEvent(teamData.team.id, participantId, actionType);
+
+      // Refresh live stream & team
+      fetchLiveStream();
+      loadTeamData(teamData.team.id);
     } catch (err: unknown) {
       // Revert optimistic update on failure
       setTeamData((prev) =>
@@ -204,15 +314,44 @@ export default function ScannerClientView() {
       );
       setErrorMsg(err instanceof Error ? err.message : "Action claim failed");
       setSuccessMsg(null);
+    } finally {
+      setActionLoading(null);
     }
   };
 
-  const isClaimed = (participantId: string, actionType: string) => {
-    return teamData?.activityLogs?.some(
-      (log: ActivityLogEntry) =>
-        log.participant_id === participantId && log.action_type === actionType
+  const handleBulkActionClick = async (actionType: ActionType) => {
+    if (!teamData?.team?.id) return;
+    setActionLoading(`bulk-${actionType}`);
+    setErrorMsg(null);
+
+    try {
+      const res = await recordTeamBulkAction(teamData.team.id, actionType);
+      setSuccessMsg(
+        `Bulk Claim Complete: Distributed "${actionType.toUpperCase()}" to ${res.claimedCount} members.`
+      );
+      broadcastScanEvent(teamData.team.id, undefined, actionType);
+      fetchLiveStream();
+      loadTeamData(teamData.team.id);
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : `Bulk ${actionType} claim failed`);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const getLogForAction = (participantId: string, actionType: string) => {
+    return teamData?.activityLogs?.find(
+      (log) => log.participant_id === participantId && log.action_type === actionType
     );
   };
+
+  const isClaimed = (participantId: string, actionType: string) => {
+    return Boolean(getLogForAction(participantId, actionType));
+  };
+
+  // Anti-fraud summary for the active team
+  const hasAnyGoodiesClaimed = teamData?.activityLogs?.some((l) => l.action_type === "goodies");
+  const firstGoodiesLog = teamData?.activityLogs?.find((l) => l.action_type === "goodies");
 
   useEffect(() => {
     return () => {
@@ -228,18 +367,19 @@ export default function ScannerClientView() {
     <div className="space-y-6">
       {/* Alert Banners */}
       {successMsg && (
-        <div className="p-4 bg-status-success/15 border border-status-success text-status-success font-tech text-xs flex items-center gap-2">
+        <div className="p-4 bg-status-success/15 border border-status-success text-status-success font-tech text-xs flex items-center gap-2 animate-fade-in">
           <CheckCircle2 size={18} />
           <span>{successMsg}</span>
         </div>
       )}
       {errorMsg && (
-        <div className="p-4 bg-status-error/15 border border-status-error text-status-error font-tech text-xs flex items-center gap-2">
+        <div className="p-4 bg-status-error/15 border border-status-error text-status-error font-tech text-xs flex items-center gap-2 animate-fade-in">
           <AlertCircle size={18} />
           <span>{errorMsg}</span>
         </div>
       )}
 
+      {/* Scanner & Manual Lookup Controls */}
       <ScannerDesk
         scanning={scanning}
         manualId={manualId}
@@ -252,25 +392,82 @@ export default function ScannerClientView() {
 
       {/* Scanned Team Roster Panel */}
       {teamData && (
-        <div className="glass-panel p-6 border border-accent-tertiary/40 space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border-color pb-4">
+        <div className="glass-panel p-6 border border-accent-tertiary/40 space-y-6 animate-fade-in font-tech">
+          {/* Fraud Protection Alert Banner if Goodies already claimed */}
+          {hasAnyGoodiesClaimed && firstGoodiesLog && (
+            <div className="p-3.5 bg-yellow-500/15 border border-yellow-500/60 text-yellow-300 text-xs flex items-start gap-3 rounded">
+              <ShieldAlert size={18} className="text-yellow-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold uppercase tracking-wider m-0 text-yellow-300">
+                  Fraud Guard Alert: Goodies Already Distributed
+                </p>
+                <p className="text-[11px] text-yellow-200/90 m-0 mt-0.5">
+                  This team has already received Goodies from{" "}
+                  <strong className="text-white">{firstGoodiesLog.scanner_name || "Club Member"}</strong> at{" "}
+                  <span className="font-mono text-white">
+                    {new Date(firstGoodiesLog.created_at).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      second: "2-digit",
+                    })}
+                  </span>
+                  . Duplicate physical distribution is prohibited across all desks.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Team Info Header */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-border-color pb-4">
             <div>
-              <span className="font-tech text-[10px] text-accent-tertiary uppercase font-bold tracking-wider px-2 py-0.5 bg-accent-tertiary/10 border border-accent-tertiary">
-                {teamData.team.track || "GENERAL"}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-accent-tertiary uppercase font-bold tracking-wider px-2 py-0.5 bg-accent-tertiary/10 border border-accent-tertiary">
+                  {teamData.team.track || "GENERAL TRACK"}
+                </span>
+                {teamData.team.code && (
+                  <span className="text-[10px] text-accent-secondary uppercase font-bold px-2 py-0.5 bg-accent-secondary/10 border border-accent-secondary font-mono">
+                    {teamData.team.code}
+                  </span>
+                )}
+                <span className="text-[10px] text-status-success uppercase font-bold px-2 py-0.5 bg-status-success/10 border border-status-success">
+                  Live Synced
+                </span>
+              </div>
               <h2 className="font-heading text-2xl text-text-primary uppercase m-0 mt-2">
                 {teamData.team.name}
               </h2>
-              <p className="font-tech text-xs text-text-secondary m-0 mt-0.5">
-                Leader: <span className="text-text-primary">{teamData.team.leader_name}</span> | Team ID:{" "}
+              <p className="text-xs text-text-secondary m-0 mt-0.5">
+                Leader: <span className="text-text-primary font-bold">{teamData.team.leader_name}</span> | UUID:{" "}
                 <span className="font-mono text-text-primary">{teamData.team.id}</span>
               </p>
+            </div>
+
+            {/* Quick Bulk Distribution Actions */}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => handleBulkActionClick("goodies")}
+                disabled={actionLoading === "bulk-goodies" || teamData.members.every((m) => isClaimed(m.id, "goodies"))}
+                className="px-3 py-1.5 bg-accent-primary/20 hover:bg-accent-primary hover:text-black border border-accent-primary text-accent-primary font-bold text-xs uppercase flex items-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Claim goodies for all members in one click"
+              >
+                <Gift size={13} />
+                <span>Distribute All Goodies</span>
+              </button>
+
+              <button
+                onClick={() => handleBulkActionClick("registration")}
+                disabled={actionLoading === "bulk-registration" || teamData.members.every((m) => isClaimed(m.id, "registration"))}
+                className="px-3 py-1.5 bg-accent-tertiary/20 hover:bg-accent-tertiary hover:text-black border border-accent-tertiary text-accent-tertiary font-bold text-xs uppercase flex items-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <UserCheck size={13} />
+                <span>Check-In All</span>
+              </button>
             </div>
           </div>
 
           {/* Members Table */}
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse font-tech text-xs">
+            <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-border-color bg-surface-color-light/40 text-text-secondary uppercase tracking-wider">
                   <th className="p-3">Participant</th>
@@ -290,10 +487,10 @@ export default function ScannerClientView() {
                   </tr>
                 ) : (
                   teamData.members.map((m: TeamScanMember) => {
-                    const regDone = isClaimed(m.id, "registration");
-                    const goodiesDone = isClaimed(m.id, "goodies");
-                    const lunchDone = isClaimed(m.id, "lunch");
-                    const snacksDone = isClaimed(m.id, "snacks");
+                    const regLog = getLogForAction(m.id, "registration");
+                    const goodiesLog = getLogForAction(m.id, "goodies");
+                    const lunchLog = getLogForAction(m.id, "lunch");
+                    const snacksLog = getLogForAction(m.id, "snacks");
 
                     return (
                       <tr key={m.id} className="hover:bg-surface-color-light/20 transition-colors">
@@ -302,7 +499,7 @@ export default function ScannerClientView() {
                             {m.name || "Member"}
                           </p>
                           <span className="font-mono text-[10px] text-text-secondary">
-                            {m.id.slice(0, 8)}...
+                            {m.email || m.id.slice(0, 8)}
                           </span>
                         </td>
 
@@ -318,68 +515,104 @@ export default function ScannerClientView() {
                           </span>
                         </td>
 
-                        {/* Registration Button */}
+                        {/* Registration Button & Audit info */}
                         <td className="p-3 text-center">
                           <button
                             onClick={() => handleActionClick(m.id, "registration")}
-                            disabled={regDone || actionLoading === `${m.id}-registration`}
+                            disabled={Boolean(regLog) || actionLoading === `${m.id}-registration`}
                             className={`px-3 py-1 text-[11px] font-bold uppercase transition-all flex items-center justify-center gap-1 mx-auto ${
-                              regDone
+                              regLog
                                 ? "bg-status-success/15 text-status-success border border-status-success cursor-default"
                                 : "bg-surface-color hover:bg-accent-tertiary hover:text-black border border-border-color"
                             }`}
                           >
                             <UserCheck size={13} />
-                            {regDone ? "Checked-In" : "Check In"}
+                            {regLog ? "Checked-In" : "Check In"}
                           </button>
+                          {regLog && (
+                            <p className="text-[9px] text-text-secondary font-mono m-0 mt-1">
+                              By {regLog.scanner_name?.split(" ")[0]} •{" "}
+                              {new Date(regLog.created_at).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </p>
+                          )}
                         </td>
 
-                        {/* Goodies Button */}
+                        {/* Goodies Button & Audit info */}
                         <td className="p-3 text-center">
                           <button
                             onClick={() => handleActionClick(m.id, "goodies")}
-                            disabled={goodiesDone || actionLoading === `${m.id}-goodies`}
+                            disabled={Boolean(goodiesLog) || actionLoading === `${m.id}-goodies`}
                             className={`px-3 py-1 text-[11px] font-bold uppercase transition-all flex items-center justify-center gap-1 mx-auto ${
-                              goodiesDone
+                              goodiesLog
                                 ? "bg-status-success/15 text-status-success border border-status-success cursor-default"
                                 : "bg-surface-color hover:bg-accent-primary hover:text-black border border-border-color"
                             }`}
                           >
                             <Gift size={13} />
-                            {goodiesDone ? "Claimed" : "Distribute"}
+                            {goodiesLog ? "Claimed" : "Distribute"}
                           </button>
+                          {goodiesLog && (
+                            <p className="text-[9px] text-text-secondary font-mono m-0 mt-1">
+                              By {goodiesLog.scanner_name?.split(" ")[0]} •{" "}
+                              {new Date(goodiesLog.created_at).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </p>
+                          )}
                         </td>
 
-                        {/* Lunch Button */}
+                        {/* Lunch Button & Audit info */}
                         <td className="p-3 text-center">
                           <button
                             onClick={() => handleActionClick(m.id, "lunch")}
-                            disabled={lunchDone || actionLoading === `${m.id}-lunch`}
+                            disabled={Boolean(lunchLog) || actionLoading === `${m.id}-lunch`}
                             className={`px-3 py-1 text-[11px] font-bold uppercase transition-all flex items-center justify-center gap-1 mx-auto ${
-                              lunchDone
+                              lunchLog
                                 ? "bg-status-success/15 text-status-success border border-status-success cursor-default"
                                 : "bg-surface-color hover:bg-accent-secondary hover:text-white border border-border-color"
                             }`}
                           >
                             <Utensils size={13} />
-                            {lunchDone ? "Claimed" : "Claim"}
+                            {lunchLog ? "Claimed" : "Claim"}
                           </button>
+                          {lunchLog && (
+                            <p className="text-[9px] text-text-secondary font-mono m-0 mt-1">
+                              By {lunchLog.scanner_name?.split(" ")[0]} •{" "}
+                              {new Date(lunchLog.created_at).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </p>
+                          )}
                         </td>
 
-                        {/* Snacks Button */}
+                        {/* Snacks Button & Audit info */}
                         <td className="p-3 text-center">
                           <button
                             onClick={() => handleActionClick(m.id, "snacks")}
-                            disabled={snacksDone || actionLoading === `${m.id}-snacks`}
+                            disabled={Boolean(snacksLog) || actionLoading === `${m.id}-snacks`}
                             className={`px-3 py-1 text-[11px] font-bold uppercase transition-all flex items-center justify-center gap-1 mx-auto ${
-                              snacksDone
+                              snacksLog
                                 ? "bg-status-success/15 text-status-success border border-status-success cursor-default"
-                                : "bg-surface-color hover:bg-accent-tertiary hover:text-black border border-border-color"
+                                : "bg-surface-color hover:bg-yellow-400 hover:text-black border border-border-color"
                             }`}
                           >
                             <Coffee size={13} />
-                            {snacksDone ? "Claimed" : "Claim"}
+                            {snacksLog ? "Claimed" : "Claim"}
                           </button>
+                          {snacksLog && (
+                            <p className="text-[9px] text-text-secondary font-mono m-0 mt-1">
+                              By {snacksLog.scanner_name?.split(" ")[0]} •{" "}
+                              {new Date(snacksLog.created_at).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </p>
+                          )}
                         </td>
                       </tr>
                     );
@@ -390,6 +623,14 @@ export default function ScannerClientView() {
           </div>
         </div>
       )}
+
+      {/* Live Realtime Audit & Activity Feed */}
+      <LiveActivityStream
+        logs={liveStreamLogs}
+        loading={streamLoading}
+        onRefresh={fetchLiveStream}
+        lastSyncTime={lastSyncTime}
+      />
     </div>
   );
 }

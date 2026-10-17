@@ -40,11 +40,11 @@ export default function OpsSidebar() {
       desc: "Manual ID search",
     },
     {
-      href: "/admin/audit-logs",
+      href: "/ops/scanner#live-activity",
       icon: Activity,
       label: "Live Activity",
-      badge: "Feed",
-      desc: "Distribution records",
+      badge: "Realtime",
+      desc: "Live distribution audit",
     },
   ];
 

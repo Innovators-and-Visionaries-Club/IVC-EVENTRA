@@ -1,6 +1,7 @@
 import { requireAuthenticatedTeamUser } from "@/lib/auth/team";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import TeamQrClientView from "./qr-client";
+import { getTeamScanStatus } from "@/app/actions/operations";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,9 @@ export default async function TeamQrPage() {
     console.error("Failed to load team data for QR:", err);
   }
 
+  // Load initial claims status
+  const initialStatus = await getTeamScanStatus(effectiveTeamId);
+
   return (
     <div className="space-y-8 animate-fade-in max-w-xl mx-auto">
       <div className="border-b border-border-color pb-6 text-center">
@@ -46,6 +50,7 @@ export default async function TeamQrPage() {
         teamName={teamInfo?.name || "Team Alpha"}
         track={teamInfo?.track || "Innovation Track"}
         leaderName={teamInfo?.leader_name || "Team Leader"}
+        initialStatus={initialStatus}
       />
     </div>
   );
