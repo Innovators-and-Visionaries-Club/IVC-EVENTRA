@@ -13,12 +13,18 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   // 1. Verify basic Supabase Auth & Admin Profile Role
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
+  let user: any = null;
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data?.user) {
+      redirect("/login");
+    }
+    user = data.user;
+  } catch (err: any) {
+    if (err?.message === "NEXT_REDIRECT" || err?.digest?.includes("NEXT_REDIRECT")) {
+      throw err;
+    }
     redirect("/login");
   }
 
@@ -30,16 +36,12 @@ export default async function AdminLayout({
   let profile: { role?: string } | null = null;
   if (metaRole !== "admin") {
     try {
-      const fetchProfile = async () => {
-        const { data } = await supabaseAdmin
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .maybeSingle();
-        return data;
-      };
-      const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500));
-      profile = await Promise.race([fetchProfile(), timeout]);
+      const { data } = await supabaseAdmin
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+      profile = data;
     } catch {}
   }
 
