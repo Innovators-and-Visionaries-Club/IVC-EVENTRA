@@ -155,6 +155,33 @@ CREATE OR REPLACE VIEW public.submissions AS
   SELECT * FROM public.team_submissions;
 
 -- ------------------------------------------------------------------------------
+-- Role Helper Functions (Ensures is_admin and has_role exist with explicit types)
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid() AND role = 'admin'
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.has_role(user_id UUID, required_role TEXT)
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = user_id AND role = required_role
+  );
+$$;
+
+-- ------------------------------------------------------------------------------
 -- Announcements System (Broadcasts from Admin/Organizers to all portals)
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.announcements (
@@ -183,6 +210,16 @@ DROP POLICY IF EXISTS "Admins and staff can manage announcements" ON public.anno
 CREATE POLICY "Admins and staff can manage announcements"
     ON public.announcements FOR ALL
     TO authenticated
-    USING (public.is_admin() OR public.has_role(auth.uid(), 'staff') OR public.has_role(auth.uid(), 'organizer'))
-    WITH CHECK (public.is_admin() OR public.has_role(auth.uid(), 'staff') OR public.has_role(auth.uid(), 'organizer'));
+    USING (
+      EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE id = auth.uid() AND role IN ('admin', 'staff', 'organizer')
+      )
+    )
+    WITH CHECK (
+      EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE id = auth.uid() AND role IN ('admin', 'staff', 'organizer')
+      )
+    );
 
