@@ -146,7 +146,6 @@ export default function UsersClientView({
     role: "participant" as AllowedUserRole,
   });
   const [formLoading, setFormLoading] = useState(false);
-  const [seedingLoading, setSeedingLoading] = useState(false);
 
   // Import / Export State
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -328,29 +327,6 @@ export default function UsersClientView({
     }
   };
 
-  const handleSeedMockData = async () => {
-    if (!confirm("Seed database with 5 Judges, 5 SPOCs, 5 Club Members, and 20 Teams (60 Participants)? This will populate all portals.")) {
-      return;
-    }
-    setSeedingLoading(true);
-    setNotification(null);
-    try {
-      const res = await seedMockDataServerAction();
-      setNotification({
-        type: "success",
-        message: `Seeding completed! Created/Synced: ${res.results.judges} Judges, ${res.results.spocs} SPOCs, ${res.results.staff} Staff, ${res.results.teams} Teams, and ${res.results.participants} Participants.`,
-      });
-      router.refresh();
-    } catch (err: unknown) {
-      setNotification({
-        type: "error",
-        message: err instanceof Error ? err.message : "Failed to seed mock data",
-      });
-    } finally {
-      setSeedingLoading(false);
-    }
-  };
-
   // Sync users list if parent re-renders with fresh data
   React.useEffect(() => {
     setUsersList(initialUsers);
@@ -527,17 +503,6 @@ export default function UsersClientView({
           >
             <Upload size={14} />
             <span>Import CSV</span>
-          </button>
-
-          {/* Seed Database */}
-          <button
-            disabled={seedingLoading}
-            onClick={handleSeedMockData}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-surface-color border border-accent-secondary/50 hover:border-accent-secondary text-accent-secondary hover:text-white font-tech font-bold uppercase tracking-wider text-xs transition-all hover:bg-accent-secondary/15 disabled:opacity-50 cursor-pointer"
-            title="Populate 5 Judges, 5 SPOCs, 5 Club Members, and 20 Teams (60 Participants)"
-          >
-            <Sparkles size={14} className={seedingLoading ? "animate-spin" : ""} />
-            <span>{seedingLoading ? "Seeding..." : "Seed Portals"}</span>
           </button>
 
           {/* Add Single User */}
