@@ -11,6 +11,7 @@ import {
   ArrowLeft,
   ScanLine,
   Gavel,
+  Layers,
 } from "lucide-react";
 import SignOutButton from "@/components/SignOutButton";
 
@@ -24,6 +25,13 @@ export default function OpsSidebar() {
       label: "QR Scanner Desk",
       badge: "Primary",
       desc: "Live badge scanning",
+    },
+    {
+      href: "/ops/rounds",
+      icon: Layers,
+      label: "Rounds & Rubrics",
+      badge: "Live",
+      desc: "Active evaluation rounds",
     },
     {
       href: "/ops/judges-roster",
